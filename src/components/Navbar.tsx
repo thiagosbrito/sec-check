@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function Navbar() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-gray-800/50"
+      className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/8 rounded-xl overflow-hidden shadow-2xl border backdrop-blur-md w-9/12 border-gray-800/50"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -44,18 +45,28 @@ export default function Navbar() {
               <motion.a
                 key={item.name}
                 href={item.href}
-                className="text-gray-300 hover:text-white transition-colors duration-200 font-medium"
+                className="text-gray-300 hover:text-white transition-colors duration-200 font-medium cursor-pointer"
                 whileHover={{ y: -2 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
                 {item.name}
               </motion.a>
             ))}
-            <Button
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-6 py-2 transition-all duration-200 transform hover:scale-105"
-            >
-              Sign In
-            </Button>
+            <Link href="/sign-in">
+              <Button
+                variant="ghost"
+                className="cursor-pointer transition-all duration-200 transform hover:scale-105"
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/sign-up">
+              <Button
+                className="bg-gradient-to-r cursor-pointer from-purple-300 to-blue-400 hover:from-purple-500 hover:to-blue-600 text-white font-semibold px-6 py-2 transition-all duration-200 transform hover:scale-105"
+              >
+                Get Started
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -92,11 +103,24 @@ export default function Navbar() {
                 {item.name}
               </a>
             ))}
-            <Button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold mt-4"
-            >
-              Sign In
-            </Button>
+            <Link href="/sign-in" className="block">
+              <Button
+                variant={"ghost"}
+                className="w-full"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sign In
+              </Button>
+            </Link>
+
+            <Link href="/sign-up" className="block">
+              <Button
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold mt-4"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Get Started
+              </Button>
+            </Link>
           </div>
         </motion.div>
       </div>

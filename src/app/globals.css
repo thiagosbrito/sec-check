@@ -119,24 +119,24 @@
   body {
     @apply bg-background text-foreground;
   }
-  
+
   /* Custom scrollbar for dark theme */
   ::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-gray-900;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-gray-700 rounded-full;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-600;
   }
-  
+
   /* Smooth animations */
   * {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;

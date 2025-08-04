@@ -100,11 +100,12 @@ export default function HowItWorksSection() {
                   <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${step.color}`} />
                   
                   <CardContent className="relative p-6 text-center">
+
                     {/* Step Number */}
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-800 text-purple-400 font-bold text-lg mb-4 relative">
+                    {/* <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-800 text-purple-400 font-bold text-lg mb-4 relative">
                       {step.step}
                       <div className="absolute inset-0 bg-purple-400/10 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
+                    </div> */}
 
                     {/* Icon */}
                     <motion.div
