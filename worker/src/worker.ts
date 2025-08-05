@@ -163,21 +163,27 @@ console.log('BullMQ worker created and starting...');
 console.log(`Worker will process jobs from queue: "${QUEUE_NAME}"`);
 console.log(`Redis URL: ${processedRedisUrl}`);
 
-// Add debugging: List waiting jobs and check for jobs
+// Add debugging: Use BullMQ Queue methods instead of raw Redis
 setTimeout(async () => {
   try {
-    const waitingJobs = await redis.llen('bull:security-scan:wait');
-    const activeJobs = await redis.llen('bull:security-scan:active');
-    const completedJobs = await redis.llen('bull:security-scan:completed');
-    const failedJobs = await redis.llen('bull:security-scan:failed');
+    // Import Queue for status checking
+    const { Queue } = await import('bullmq');
+    const statusQueue = new Queue('security-scan', { connection: redis });
     
-    console.log(`📊 Queue status - Waiting: ${waitingJobs}, Active: ${activeJobs}, Completed: ${completedJobs}, Failed: ${failedJobs}`);
+    const waiting = await statusQueue.getWaiting();
+    const active = await statusQueue.getActive();
+    const completed = await statusQueue.getCompleted();
+    const failed = await statusQueue.getFailed();
+    
+    console.log(`📊 Queue status - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}`);
     
     // Check if there are specific job IDs waiting
-    if (waitingJobs > 0) {
-      const jobIds = await redis.lrange('bull:security-scan:wait', 0, -1);
+    if (waiting.length > 0) {
+      const jobIds = waiting.map(job => job.id);
       console.log(`🔍 Jobs waiting in queue: ${jobIds.join(', ')}`);
     }
+    
+    await statusQueue.close();
   } catch (error) {
     console.error('Failed to check queue status:', error);
   }
@@ -186,10 +192,15 @@ setTimeout(async () => {
 // Also add a periodic check to see if worker is actually polling
 setInterval(async () => {
   try {
-    const waitingJobs = await redis.llen('bull:security-scan:wait');
-    if (waitingJobs > 0) {
-      console.log(`⏳ ${waitingJobs} jobs still waiting to be processed...`);
+    const { Queue } = await import('bullmq');
+    const statusQueue = new Queue('security-scan', { connection: redis });
+    
+    const waiting = await statusQueue.getWaiting();
+    if (waiting.length > 0) {
+      console.log(`⏳ ${waiting.length} jobs still waiting to be processed...`);
     }
+    
+    await statusQueue.close();
   } catch (error) {
     console.error('Periodic queue check failed:', error);
   }
