@@ -9,6 +9,9 @@ if (!process.env.DATABASE_URL) {
 
 // Create the connection using DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
+
+console.log('App DB target:', new URL(process.env.DATABASE_URL!).host);
+
 const client = postgres(connectionString, { 
   prepare: false,
   // Enable SSL for security
@@ -35,9 +38,12 @@ export const createServiceClient = () => {
   const serviceUrl = new URL(process.env.DATABASE_URL!);
   serviceUrl.password = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
-  const serviceClient = postgres(serviceUrl.toString(), {
+  const serviceUrlString = serviceUrl.toString();
+  const isServiceLocal = serviceUrlString.includes('localhost') || serviceUrlString.includes('127.0.0.1');
+  
+  const serviceClient = postgres(serviceUrlString, {
     prepare: false,
-    ssl: { rejectUnauthorized: false },
+    ...(isServiceLocal ? {} : { ssl: { rejectUnauthorized: false } }),
     max: 5, // Smaller pool for service operations
   });
   

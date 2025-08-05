@@ -19,12 +19,9 @@ import {
   Scan, 
   FileText, 
   Settings, 
-  BarChart3,
   History,
-  Key,
   User,
-  LogOut,
-  HelpCircle
+  LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { useClientAuth } from "@/hooks/useClientAuth";
@@ -50,28 +47,6 @@ const data = {
       title: "Reports",
       url: "/dashboard/reports",
       icon: FileText,
-    },
-    {
-      title: "Analytics",
-      url: "/dashboard/analytics",
-      icon: BarChart3,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "API Keys",
-      url: "/dashboard/api-keys",
-      icon: Key,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings,
-    },
-    {
-      title: "Help & Support",
-      url: "/dashboard/help",
-      icon: HelpCircle,
     },
   ],
 };
@@ -121,29 +96,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="px-3">
-          <SidebarGroupLabel className="text-gray-400 font-medium text-xs uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">
-            Tools & Settings
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {data.navSecondary.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    tooltip={item.title}
-                    className="text-gray-300 hover:text-white hover:bg-purple-900/30 data-[active=true]:bg-purple-900/50 data-[active=true]:text-purple-200 rounded-lg transition-colors"
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-gray-800 p-4 group-data-[collapsible=icon]:p-2">
@@ -162,6 +114,18 @@ export function AppSidebar() {
                 </p>
               </div>
             </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              asChild
+              tooltip="Settings"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-purple-900/30"
+            >
+              <Link href="/dashboard/settings">
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="group-data-[collapsible=icon]:hidden">Settings</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

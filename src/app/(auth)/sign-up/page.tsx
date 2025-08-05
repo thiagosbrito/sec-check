@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Github, Mail, Lock, AlertCircle, CheckCircle, User } from "lucide-react";
 
-export default function SignUpPage() {
+function SignUpContent() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,6 +18,8 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirectUrl');
   const supabase = createClient();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,6 +27,11 @@ export default function SignUpPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const getCallbackUrl = () => {
+    const baseUrl = `${window.location.origin}/callback`;
+    return redirectUrl ? `${baseUrl}?redirectUrl=${encodeURIComponent(redirectUrl)}` : baseUrl;
   };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -52,7 +60,7 @@ export default function SignUpPage() {
           data: {
             name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/callback`,
+          emailRedirectTo: getCallbackUrl(),
         },
       });
 
@@ -79,7 +87,7 @@ export default function SignUpPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: `${window.location.origin}/callback`,
+          redirectTo: getCallbackUrl(),
         },
       });
 
@@ -260,10 +268,21 @@ export default function SignUpPage() {
 
       <p className="text-center text-gray-400 text-sm mt-6">
         Already have an account?{" "}
-        <Link href="/sign-in" className="text-purple-400 hover:text-purple-300 transition-colors">
+        <Link 
+          href={redirectUrl ? `/sign-in?redirectUrl=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
+          className="text-purple-400 hover:text-purple-300 transition-colors"
+        >
           Sign in
         </Link>
       </p>
     </>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }

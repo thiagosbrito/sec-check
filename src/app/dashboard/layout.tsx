@@ -1,5 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import Loader from "@/components/Loader";
 
 export default function DashboardLayout({
   children,

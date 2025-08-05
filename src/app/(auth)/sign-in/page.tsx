@@ -1,20 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Github, Mail, Lock, AlertCircle } from "lucide-react";
 
-export default function SignInPage() {
+function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirectUrl');
   const supabase = createClient();
+
+  const getCallbackUrl = () => {
+    const baseUrl = `${window.location.origin}/callback`;
+    return redirectUrl ? `${baseUrl}?redirectUrl=${encodeURIComponent(redirectUrl)}` : baseUrl;
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +40,12 @@ export default function SignInPage() {
       }
 
       if (data.user) {
-        router.push("/dashboard");
+        // Handle redirect URL if present
+        if (redirectUrl) {
+          router.push(`/dashboard/scan?url=${encodeURIComponent(redirectUrl)}`);
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -50,7 +62,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: `${window.location.origin}/callback`,
+          redirectTo: getCallbackUrl(),
         },
       });
 
@@ -156,10 +168,21 @@ export default function SignInPage() {
 
       <p className="text-center text-gray-400 text-sm mt-6">
         Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="text-purple-400 hover:text-purple-300 transition-colors">
+        <Link 
+          href={redirectUrl ? `/sign-up?redirectUrl=${encodeURIComponent(redirectUrl)}` : "/sign-up"} 
+          className="text-purple-400 hover:text-purple-300 transition-colors"
+        >
           Sign up
         </Link>
       </p>
     </>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }

@@ -2,24 +2,32 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Scan, Lock, Zap } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HeroSection() {
   const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   const handleScan = async () => {
     if (!url) return;
     
-    setIsScanning(true);
-    // Simulate scan delay
-    setTimeout(() => {
-      setIsScanning(false);
-      // This would normally trigger the scan API
-      console.log("Scanning:", url);
-    }, 3000);
+    // Check if user is authenticated
+    if (!user) {
+      // Redirect to sign-up with the URL as a query parameter
+      const encodedUrl = encodeURIComponent(url);
+      router.push(`/sign-up?redirectUrl=${encodedUrl}`);
+      return;
+    }
+    
+    // User is authenticated, redirect to scan page with URL
+    const encodedUrl = encodeURIComponent(url);
+    router.push(`/dashboard/scan?url=${encodedUrl}`);
   };
 
   return (

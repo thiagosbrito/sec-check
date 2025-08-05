@@ -1,0 +1,29 @@
+{
+  "name": "sec-check-worker",
+  "version": "1.0.0",
+  "description": "Security scanning worker for SecCheck",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "bullmq": "^5.56.9",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.4",
+    "glob": "^11.0.0",
+    "ioredis": "^5.7.0",
+    "playwright": "^1.54.2",
+    "postgres": "^3.4.7",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

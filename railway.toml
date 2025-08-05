@@ -1,0 +1,29 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "redis"
+source = "redis:7-alpine"
+
+[services.variables]
+REDIS_PASSWORD = "${{RAILWAY_REDIS_PASSWORD}}"
+
+[[services]]
+name = "worker"
+source = "worker/"
+
+[services.variables]
+DATABASE_URL = "${{DATABASE_URL}}"
+REDIS_URL = "redis://default:${{RAILWAY_REDIS_PASSWORD}}@redis.railway.internal:6379"
+NODE_ENV = "production"
+WORKER_CONCURRENCY = "3"
+
+[services.healthcheck]
+path = "/health"
+timeout = 30

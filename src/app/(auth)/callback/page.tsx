@@ -17,6 +17,7 @@ function CallbackContent() {
       try {
         // Get the code from URL params
         const code = searchParams.get('code');
+        const redirectUrl = searchParams.get('redirectUrl');
         
         if (code) {
           // Exchange the code for a session
@@ -35,9 +36,15 @@ function CallbackContent() {
             // TODO: Create user in our database using tRPC
             // This will be implemented when we integrate tRPC with auth
             
-            // Redirect to dashboard
+            // Redirect based on whether there's a redirect URL
             setTimeout(() => {
-              router.push("/dashboard");
+              if (redirectUrl) {
+                // Redirect to scan page with the URL parameter
+                router.push(`/dashboard/scan?url=${encodeURIComponent(redirectUrl)}`);
+              } else {
+                // Default redirect to dashboard
+                router.push("/dashboard");
+              }
             }, 2000);
           }
         } else {
