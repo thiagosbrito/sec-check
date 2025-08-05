@@ -8,85 +8,11 @@ export class BrowserSecurityTest {
     let page: Page | null = null;
 
     try {
-      // Determine if we should run headless or visible
-      const isLiveViewEnabled = process.env.ENABLE_LIVE_VIEW === 'true';
-      const display = process.env.DISPLAY || ':99';
+      console.log(`🎬 Starting browser security test for: ${url}`);
 
-      console.log(`🎬 Starting browser test - Live view: ${isLiveViewEnabled ? 'ENABLED' : 'DISABLED'}`);
-
-      // Try to find the correct Chromium executable
-      let executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-      
-      if (!executablePath) {
-        // Try to find browsers dynamically
-        const fs = await import('fs');
-        const path = await import('path');
-        const os = await import('os');
-        const { glob } = await import('glob');
-        
-        const homeDir = os.homedir();
-        console.log(`🏠 Home directory: ${homeDir}`);
-        
-        // Try to find any chromium installation using glob patterns
-        const searchPatterns = [
-          '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
-          '/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell',
-          path.join(homeDir, '.cache/ms-playwright/chromium-*/chrome-linux/chrome'),
-          path.join(homeDir, '.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell'),
-          '/usr/bin/chromium',
-          '/usr/bin/chromium-browser',
-          '/usr/bin/google-chrome',
-        ];
-        
-        for (const pattern of searchPatterns) {
-          try {
-            const matches = await glob(pattern);
-            if (matches && matches.length > 0) {
-              const testPath = matches[0];
-              if (fs.existsSync(testPath)) {
-                executablePath = testPath;
-                console.log(`🎯 Found Chromium at: ${executablePath}`);
-                break;
-              }
-            }
-          } catch (e) {
-            console.warn(`Failed to search pattern ${pattern}:`, e);
-          }
-        }
-        
-        // If still not found, list what's actually in the cache directories
-        if (!executablePath) {
-          try {
-            // Check root cache first (where browsers are installed)
-            const rootCacheDir = '/root/.cache/ms-playwright';
-            console.log(`📂 Checking root cache directory: ${rootCacheDir}`);
-            if (fs.existsSync(rootCacheDir)) {
-              const contents = fs.readdirSync(rootCacheDir);
-              console.log(`📁 Root cache directory contents:`, contents);
-            } else {
-              console.log(`❌ Root cache directory doesn't exist: ${rootCacheDir}`);
-            }
-            
-            // Also check user cache
-            const userCacheDir = path.join(homeDir, '.cache/ms-playwright');
-            console.log(`📂 Checking user cache directory: ${userCacheDir}`);
-            if (fs.existsSync(userCacheDir)) {
-              const contents = fs.readdirSync(userCacheDir);
-              console.log(`📁 User cache directory contents:`, contents);
-            } else {
-              console.log(`❌ User cache directory doesn't exist: ${userCacheDir}`);
-            }
-          } catch (e) {
-            console.warn('Failed to list cache directories:', e);
-          }
-        }
-      }
-
-      console.log(`🚀 Launching browser with executable: ${executablePath || 'default'}`);
-
-      // Launch browser with live viewing capability
+      // Launch browser in headless mode for production scanning
       browser = await chromium.launch({
-        headless: !isLiveViewEnabled, // Show browser if live view is enabled
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -101,10 +27,10 @@ export class BrowserSecurityTest {
           '--disable-features=TranslateUI',
           '--disable-extensions',
           '--disable-plugins',
-          ...(isLiveViewEnabled ? [`--display=${display}`] : [])
-        ],
-        executablePath: executablePath || undefined,
-        slowMo: isLiveViewEnabled ? 1000 : 0, // Slow down actions for viewing
+          '--disable-blink-features=AutomationControlled',
+          '--disable-web-security',
+          '--allow-running-insecure-content'
+        ]
       });
 
       page = await browser.newPage();

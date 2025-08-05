@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { is } from "drizzle-orm";
 import Loader from "@/components/Loader";
-import LiveBrowserView from "@/components/LiveBrowserView";
 
 interface ScanResult {
   testName: string;
@@ -351,13 +350,6 @@ export default function ScanPage() {
                       Individual security check results
                     </CardDescription>
                   </div>
-                  {scanResponse && (
-                    <LiveBrowserView 
-                      scanId={scanResponse.scanId} 
-                      isScanning={isScanning || results.length > 0}
-                      compact={true}
-                    />
-                  )}
                 </div>
               </CardHeader>
               <CardContent>
