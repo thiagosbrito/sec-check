@@ -1,5 +1,5 @@
 import { Queue, QueueOptions } from 'bullmq';
-import { Redis } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import { QUEUE_NAMES, type ScanJobData, type ScanJobResult } from './types';
 
 // Create dedicated Redis connection for BullMQ (same config as worker)
@@ -15,13 +15,12 @@ if (redisUrl.startsWith('redis://') && redisUrl.includes('upstash.io')) {
 }
 
 // Configure Redis options (match worker exactly)
-const redisOptions: any = {
+const redisOptions: RedisOptions = {
   enableReadyCheck: false,
   maxRetriesPerRequest: null, // Required for BullMQ workers
   lazyConnect: false,
   connectTimeout: 10000,
-  commandTimeout: 30000,
-  retryDelayOnFailover: 100,
+  commandTimeout: 30000
 };
 
 // Add TLS for Upstash URLs (Railway Redis typically doesn't need TLS)

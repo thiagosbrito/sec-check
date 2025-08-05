@@ -5,10 +5,10 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { scanId: string } }
+  { params }: { params: Promise<{ scanId: string }> }
 ) {
   try {
-    const { scanId } = params;
+    const { scanId } = await params;
 
     // Verify scan exists and is running
     const [scan] = await db

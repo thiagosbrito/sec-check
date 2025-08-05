@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Scan, FileText, Activity, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +10,18 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { useClientAuth } from "@/hooks/useClientAuth";
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user } = useClientAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if there's a redirectUrl parameter and redirect to scan page
+  useEffect(() => {
+    const redirectUrl = searchParams.get('redirectUrl');
+    if (redirectUrl && user) {
+      router.push(`/dashboard/scan?url=${encodeURIComponent(redirectUrl)}`);
+    }
+  }, [searchParams, user, router]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -138,5 +150,13 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

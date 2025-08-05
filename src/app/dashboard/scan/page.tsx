@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,14 @@ interface ScanProgress {
 }
 
 export default function ScanPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScanContent />
+    </Suspense>
+  );
+}
+
+function ScanContent() {
   const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null);
@@ -54,6 +63,15 @@ export default function ScanPage() {
   const [scanCompleted, setScanCompleted] = useState(false);
   const [scanResponse, setScanResponse] = useState<ScanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // Populate URL from query parameter on component mount
+  useEffect(() => {
+    const urlParam = searchParams.get('url');
+    if (urlParam) {
+      setUrl(decodeURIComponent(urlParam));
+    }
+  }, [searchParams]);
 
   const handleScan = async () => {
     if (!url) return;

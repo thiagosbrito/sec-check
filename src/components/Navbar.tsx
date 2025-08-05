@@ -11,7 +11,6 @@ export default function Navbar() {
 
   const navItems = [
     { name: "How it Works", href: "#how-it-works" },
-    { name: "Pricing", href: "#pricing" },
     { name: "FAQ", href: "#faq" },
   ];
 
@@ -64,7 +63,7 @@ export default function Navbar() {
               <Button
                 className="bg-gradient-to-r cursor-pointer from-purple-300 to-blue-400 hover:from-purple-500 hover:to-blue-600 text-white font-semibold px-6 py-2 transition-all duration-200 transform hover:scale-105"
               >
-                Get Started
+                Try for free
               </Button>
             </Link>
           </div>
@@ -118,7 +117,7 @@ export default function Navbar() {
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold mt-4"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Get Started
+                Try for free
               </Button>
             </Link>
           </div>

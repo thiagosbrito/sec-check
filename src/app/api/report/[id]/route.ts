@@ -52,9 +52,9 @@ export async function GET(
     // Get job status if available
     let jobStatus = null;
     if (scan.scanConfig && typeof scan.scanConfig === 'object' && 'jobId' in scan.scanConfig) {
-      const jobId = (scan.scanConfig as any).jobId;
+      const jobId = scan.scanConfig.jobId;
       if (jobId) {
-        jobStatus = await getScanJobStatus(jobId);
+        jobStatus = await getScanJobStatus(jobId as string);
       }
     }
 
@@ -154,7 +154,7 @@ export async function GET(
       return NextResponse.json(
         { 
           error: 'Invalid scan ID format',
-          details: error.errors.map(e => e.message),
+          details: error.issues.map((e: { message: string }) => e.message),
         },
         { status: 400 }
       );

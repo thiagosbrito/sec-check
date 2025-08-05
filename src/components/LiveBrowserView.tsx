@@ -173,7 +173,7 @@ export default function LiveBrowserView({ scanId, isScanning, compact = false }:
           </div>
         )}
 
-        {streamData.liveViewEnabled ? (
+        {streamData?.liveViewEnabled ? (
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Button
@@ -215,7 +215,7 @@ export default function LiveBrowserView({ scanId, isScanning, compact = false }:
                 </div>
                 <div className="relative">
                   <iframe
-                    src={streamData.streamUrl}
+                    src={streamData?.streamUrl}
                     className="w-full h-96 bg-black"
                     allow="fullscreen"
                     title="Live Browser View"
@@ -228,7 +228,7 @@ export default function LiveBrowserView({ scanId, isScanning, compact = false }:
             )}
 
             <div className="text-sm text-gray-400 bg-gray-800/50 p-3 rounded-lg">
-              <strong>💡 What you'll see:</strong>
+              <strong>💡 What you&apos;ll see:</strong>
               <ul className="mt-2 space-y-1 text-xs">
                 <li>• Playwright opening your website in a real browser</li>
                 <li>• Automated mouse movements and clicks</li>
