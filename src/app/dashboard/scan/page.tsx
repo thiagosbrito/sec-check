@@ -378,11 +378,21 @@ export default function ScanPage() {
                             </p>
                           )}
                           {result.evidence && Object.keys(result.evidence).length > 0 && (
-                            <div className="mt-2 p-2 bg-gray-800/50 rounded text-xs">
-                              <strong className="text-gray-300">Evidence:</strong>
-                              <pre className="text-gray-400 mt-1 overflow-x-auto">
-                                {JSON.stringify(result.evidence, null, 2)}
-                              </pre>
+                            <div className="mt-2 p-3 bg-gray-800/50 rounded-lg text-xs border border-gray-700">
+                              <strong className="text-gray-300 block mb-3">Evidence:</strong>
+                              <div className="space-y-3">
+                                {Object.entries(result.evidence).map(([key, value]) => (
+                                  <div key={key} className="border-l-3 border-blue-500/50 pl-3">
+                                    <div className="text-blue-300 font-mono text-xs mb-2 font-semibold">{key}:</div>
+                                    <div className="text-gray-300 whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-gray-900/80 p-3 rounded border border-gray-600/50">
+                                      {typeof value === 'string' 
+                                        ? value.replace(/\\n/g, '\n')
+                                        : JSON.stringify(value, null, 2)
+                                      }
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                           {result.confidence && result.confidence < 100 && (
