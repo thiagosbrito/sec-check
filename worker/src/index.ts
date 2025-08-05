@@ -2,7 +2,7 @@
 
 import dotenv from 'dotenv';
 import { worker } from './worker';
-import { server } from './health';
+import './health'; // Import health server to start it
 
 // Load environment variables
 dotenv.config();

@@ -3,14 +3,32 @@ import { Redis } from 'ioredis';
 import { QUEUE_NAMES, type ScanJobData, type ScanJobResult } from './types';
 
 // Create dedicated Redis connection for BullMQ (same config as worker)
-const redis = new Redis(process.env.REDIS_URL!, {
-  maxRetriesPerRequest: null, // Required for BullMQ
+const redisUrl = process.env.REDIS_URL!;
+
+// Ensure TLS for Upstash (same logic as worker)
+let processedRedisUrl = redisUrl;
+if (redisUrl.startsWith('redis://') && redisUrl.includes('upstash.io')) {
+  processedRedisUrl = redisUrl.replace('redis://', 'rediss://');
+}
+
+// Configure Redis options (match worker exactly)
+const redisOptions: any = {
   enableReadyCheck: false,
-  lazyConnect: false, // Match worker exactly
+  maxRetriesPerRequest: null, // Required for BullMQ workers
+  lazyConnect: false,
   connectTimeout: 10000,
-  commandTimeout: 5000,
-  tls: {}, // Empty TLS object for Upstash
-});
+  commandTimeout: 30000,
+  retryDelayOnFailover: 100,
+};
+
+// Only add TLS for Upstash URLs
+if (processedRedisUrl.includes('upstash.io')) {
+  redisOptions.tls = {
+    rejectUnauthorized: false, // Important for Upstash
+  };
+}
+
+const redis = new Redis(processedRedisUrl, redisOptions);
 
 // Queue configuration
 const queueConfig: QueueOptions = {

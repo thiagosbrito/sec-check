@@ -1,8 +1,9 @@
-# Use the official Node.js runtime as the base image
-FROM node:20-bullseye-slim
+# Use Node.js 18 with Playwright support
+FROM node:18-slim
 
-# Install system dependencies for Playwright
+# Install system dependencies for Playwright + curl for health checks
 RUN apt-get update && apt-get install -y \
+    curl \
     wget \
     gnupg \
     ca-certificates \
@@ -52,13 +53,16 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
-# Install Playwright browsers
-RUN npx playwright install chromium
+# Install Playwright browsers with dependencies
+RUN npx playwright install chromium --with-deps
 
-# Copy application code
-COPY dist/ ./dist/
+# Copy source code
+COPY . .
+
+# Build TypeScript
+RUN pnpm build
 
 # Create non-root user for security
 RUN groupadd -r seccheck && useradd -r -g seccheck -G audio,video seccheck \
@@ -69,9 +73,12 @@ RUN groupadd -r seccheck && useradd -r -g seccheck -G audio,video seccheck \
 # Switch to non-root user
 USER seccheck
 
-# Health check
+# Expose health check port
+EXPOSE 3001
+
+# Health check via HTTP endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD node -e "console.log('Worker health check passed')" || exit 1
+    CMD curl -f http://localhost:3001/health || exit 1
 
 # Start the worker
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/worker.js"]

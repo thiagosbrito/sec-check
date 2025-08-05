@@ -2,6 +2,7 @@ import type { ScanJobData, ScanJobProgress, ScanJobResult, SecurityTestResult } 
 import { SecurityHeadersTest } from './tests/SecurityHeadersTest';
 import { CookieSecurityTest } from './tests/CookieSecurityTest';
 import { DirectoryExposureTest } from './tests/DirectoryExposureTest';
+import { BrowserSecurityTest } from './tests/BrowserSecurityTest';
 
 export class SecurityScanner {
   private progressCallback?: (progress: ScanJobProgress) => void;
@@ -19,6 +20,7 @@ export class SecurityScanner {
       { name: 'Security Headers', test: SecurityHeadersTest },
       { name: 'Cookie Security', test: CookieSecurityTest },
       { name: 'Directory Exposure', test: DirectoryExposureTest },
+      { name: 'Browser Security', test: BrowserSecurityTest },
     ];
 
     const totalTests = securityTests.length;

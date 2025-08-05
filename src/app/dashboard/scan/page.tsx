@@ -10,101 +10,140 @@ import { Scan, AlertTriangle, CheckCircle, Clock, Globe, Shield } from "lucide-r
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-interface VulnerabilityResult {
-  id: string;
-  name: string;
+interface ScanResult {
+  testName: string;
+  owaspCategory: string;
   severity: "critical" | "high" | "medium" | "low" | "info";
+  status: "pass" | "fail" | "warning" | "error";
+  title: string;
   description: string;
-  found: boolean;
-  details?: string;
+  impact?: string;
+  recommendation?: string;
+  evidence?: Record<string, unknown>;
+  technicalDetails?: Record<string, unknown>;
+  references?: string[];
+  confidence?: number;
 }
 
-const mockVulnerabilityChecks: VulnerabilityResult[] = [
-  {
-    id: "https",
-    name: "HTTPS Enforcement",
-    severity: "high",
-    description: "Checks if the website enforces HTTPS connections",
-    found: false,
-  },
-  {
-    id: "headers",
-    name: "Security Headers",
-    severity: "medium",
-    description: "Validates presence of security headers (CSP, HSTS, X-Frame-Options)",
-    found: false,
-  },
-  {
-    id: "cookies",
-    name: "Secure Cookies",
-    severity: "medium",
-    description: "Checks if cookies have Secure and HttpOnly flags",
-    found: false,
-  },
-  {
-    id: "mixed-content",
-    name: "Mixed Content",
-    severity: "high",
-    description: "Detects HTTP resources loaded on HTTPS pages",
-    found: false,
-  },
-  {
-    id: "xss-protection",
-    name: "XSS Protection",
-    severity: "high",
-    description: "Checks for XSS protection headers and basic vulnerabilities",
-    found: false,
-  },
-];
+interface ScanResponse {
+  scanId: string;
+  jobId: string;
+  url: string;
+  domain: string;
+  status: string;
+  createdAt: string;
+  estimatedCompletionTime: string;
+}
+
+interface ScanProgress {
+  stage: 'initializing' | 'analyzing' | 'testing' | 'reporting' | 'completed';
+  completedTests: number;
+  totalTests: number;
+  currentTest?: string;
+  message?: string;
+  percentage: number;
+}
 
 export default function ScanPage() {
   const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [results, setResults] = useState<VulnerabilityResult[]>([]);
+  const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null);
+  const [results, setResults] = useState<ScanResult[]>([]);
   const [scanCompleted, setScanCompleted] = useState(false);
+  const [scanResponse, setScanResponse] = useState<ScanResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
     if (!url) return;
 
     setIsScanning(true);
-    setScanProgress(0);
+    setScanProgress(null);
     setScanCompleted(false);
     setResults([]);
+    setError(null);
+    setScanResponse(null);
 
-    // Simulate scanning progress
-    const checks = [...mockVulnerabilityChecks];
-    const totalChecks = checks.length;
+    try {
+      // Start the scan
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: url,
+          isPublicScan: true,
+        }),
+      });
 
-    for (let i = 0; i < totalChecks; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate check time
-      
-      // Simulate some random results
-      const check = { ...checks[i] };
-      check.found = Math.random() > 0.7; // 30% chance of finding an issue
-      
-      if (check.found) {
-        check.details = getRandomDetails(check.id);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start scan');
       }
 
-      setResults(prev => [...prev, check]);
-      setScanProgress(((i + 1) / totalChecks) * 100);
+      const scanData: { success: boolean; data: ScanResponse } = await response.json();
+      setScanResponse(scanData.data);
+
+      // Poll for scan results
+      await pollScanResults(scanData.data.scanId);
+
+    } catch (error) {
+      console.error('Scan failed:', error);
+      setError(error instanceof Error ? error.message : 'Scan failed');
+      setIsScanning(false);
     }
-
-    setIsScanning(false);
-    setScanCompleted(true);
   };
 
-  const getRandomDetails = (checkId: string): string => {
-    const details = {
-      https: "Website is accessible via HTTP without redirecting to HTTPS",
-      headers: "Missing Content-Security-Policy and X-Frame-Options headers",
-      cookies: "Session cookies found without Secure flag",
-      "mixed-content": "HTTP resources detected: images and stylesheets",
-      "xss-protection": "Missing X-XSS-Protection header"
+  const pollScanResults = async (scanId: string) => {
+    const maxAttempts = 60; // 5 minutes max (5s intervals)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/report/${scanId}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            // Scan not found or not completed yet
+            if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(poll, 5000); // Poll every 5 seconds
+              return;
+            } else {
+              throw new Error('Scan timeout - results not available');
+            }
+          }
+          throw new Error('Failed to fetch scan results');
+        }
+
+        const reportData = await response.json();
+        
+        if (reportData.scan?.status === 'completed') {
+          setResults(reportData.results || []);
+          setScanCompleted(true);
+          setIsScanning(false);
+        } else if (reportData.scan?.status === 'failed') {
+          throw new Error('Scan failed: ' + (reportData.scan.errorMessage || 'Unknown error'));
+        } else {
+          // Still running, continue polling
+          if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(poll, 5000);
+          } else {
+            throw new Error('Scan timeout');
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        setError(error instanceof Error ? error.message : 'Failed to get scan results');
+        setIsScanning(false);
+      }
     };
-    return details[checkId as keyof typeof details] || "Potential security issue detected";
+
+    // Start polling
+    setTimeout(poll, 5000); // Initial delay
   };
+
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -129,7 +168,7 @@ export default function ScanPage() {
     }
   };
 
-  const vulnerabilitiesFound = results.filter(r => r.found).length;
+  const vulnerabilitiesFound = results.filter(r => r.status === 'fail' || r.status === 'warning').length;
   const totalChecks = results.length;
 
   return (
@@ -189,8 +228,23 @@ export default function ScanPage() {
           </CardContent>
         </Card>
 
+        {/* Error Display */}
+        {error && (
+          <Card className="bg-red-900/20 border-red-800">
+            <CardHeader>
+              <CardTitle className="text-red-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Scan Error
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-300">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Scanning Progress */}
-        {isScanning && (
+        {isScanning && !error && (
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
@@ -203,9 +257,18 @@ export default function ScanPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <Progress value={scanProgress} className="w-full" />
+                <Progress value={scanProgress?.percentage} className="w-full" />
+                <div className="flex items-center gap-2">
+                  <Scan className="w-4 h-4 animate-spin text-purple-400" />
+                  <span className="text-sm text-gray-400">
+                    {scanResponse ? 
+                      `Scan ID: ${scanResponse.scanId} - Estimated completion: ${scanResponse.estimatedCompletionTime}` :
+                      'Initializing scan...'
+                    }
+                  </span>
+                </div>
                 <p className="text-sm text-gray-400">
-                  Completed {results.length} of {mockVulnerabilityChecks.length} security checks
+                  This may take 1-3 minutes to complete. The page will automatically update when results are ready.
                 </p>
               </div>
             </CardContent>
@@ -254,11 +317,11 @@ export default function ScanPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {results.map((result) => (
+                  {results.map((result, index) => (
                     <div
-                      key={result.id}
+                      key={`${result.testName}-${index}`}
                       className={`p-4 rounded-lg border ${
-                        result.found
+                        result.status === 'fail' || result.status === 'warning'
                           ? "bg-red-900/20 border-red-800"
                           : "bg-green-900/20 border-green-800"
                       }`}
@@ -267,18 +330,41 @@ export default function ScanPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             {getSeverityIcon(result.severity)}
-                            <h3 className="font-semibold text-white">{result.name}</h3>
+                            <h3 className="font-semibold text-white">{result.title}</h3>
                             <Badge variant={getSeverityColor(result.severity)}>
                               {result.severity.toUpperCase()}
                             </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {result.owaspCategory}
+                            </Badge>
                           </div>
                           <p className="text-gray-400 text-sm mb-2">{result.description}</p>
-                          {result.found && result.details && (
-                            <p className="text-red-300 text-sm font-medium">{result.details}</p>
+                          {result.impact && (
+                            <p className="text-yellow-300 text-sm mb-2">
+                              <strong>Impact:</strong> {result.impact}
+                            </p>
+                          )}
+                          {result.recommendation && (
+                            <p className="text-blue-300 text-sm mb-2">
+                              <strong>Recommendation:</strong> {result.recommendation}
+                            </p>
+                          )}
+                          {result.evidence && Object.keys(result.evidence).length > 0 && (
+                            <div className="mt-2 p-2 bg-gray-800/50 rounded text-xs">
+                              <strong className="text-gray-300">Evidence:</strong>
+                              <pre className="text-gray-400 mt-1 overflow-x-auto">
+                                {JSON.stringify(result.evidence, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                          {result.confidence && result.confidence < 100 && (
+                            <p className="text-gray-500 text-xs mt-2">
+                              Confidence: {result.confidence}%
+                            </p>
                           )}
                         </div>
                         <div className="ml-4">
-                          {result.found ? (
+                          {result.status === 'fail' || result.status === 'warning' ? (
                             <AlertTriangle className="w-6 h-6 text-red-400" />
                           ) : (
                             <CheckCircle className="w-6 h-6 text-green-400" />

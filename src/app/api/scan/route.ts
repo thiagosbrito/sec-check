@@ -7,8 +7,8 @@ import { eq } from 'drizzle-orm';
 
 // Request schema
 const scanRequestSchema = z.object({
-  url: z.string().url('Please provide a valid URL'),
-  userId: z.string().uuid().optional(),
+  url: z.url('Please provide a valid URL'),
+  userId: z.uuid().optional(),
   isPublicScan: z.boolean().default(true),
 });
 
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Invalid request data',
-          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+          details: error.issues.map(issue => issue.message),
         },
         { status: 400 }
       );

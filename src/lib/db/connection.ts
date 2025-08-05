@@ -9,14 +9,20 @@ if (!process.env.DATABASE_URL) {
 
 // Create the connection using DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
+
+// Configure connection options based on URL
+const isLocalConnection = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+
 const client = postgres(connectionString, { 
   prepare: false,
-  // Enable SSL for security
-  ssl: { rejectUnauthorized: false },
-  // Connection pool settings for security
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
+  // Only use SSL for remote connections
+  ...(isLocalConnection ? {} : { ssl: { rejectUnauthorized: false } }),
+  // Optimized connection settings for local development
+  max: 5,                    // Smaller pool for local dev
+  idle_timeout: 300,         // 5 minutes
+  connect_timeout: 10,       // 10 seconds
+  max_lifetime: 1800,        // 30 minutes max connection lifetime
+  debug: process.env.NODE_ENV === 'development', // Enable debug logging in dev
 });
 
 // Create the database instance
@@ -35,9 +41,12 @@ export const createServiceClient = () => {
   const serviceUrl = new URL(process.env.DATABASE_URL!);
   serviceUrl.password = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
-  const serviceClient = postgres(serviceUrl.toString(), {
+  const serviceUrlString = serviceUrl.toString();
+  const isServiceLocal = serviceUrlString.includes('localhost') || serviceUrlString.includes('127.0.0.1');
+  
+  const serviceClient = postgres(serviceUrlString, {
     prepare: false,
-    ssl: { rejectUnauthorized: false },
+    ...(isServiceLocal ? {} : { ssl: { rejectUnauthorized: false } }),
     max: 5, // Smaller pool for service operations
   });
   
