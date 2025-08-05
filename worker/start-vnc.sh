@@ -19,9 +19,15 @@ fluxbox &
 # Start VNC server
 x11vnc -display :99 -nopw -listen localhost -xkb -forever -shared &
 
-# Start websockify to proxy VNC over WebSocket (for web browsers)
+# Start websockify to proxy VNC over WebSocket (for web browsers)  
 echo "Starting websockify on port 6080..."
-websockify --web=/usr/share/novnc --cert=self 6080 localhost:5900 &
+# Use the correct novnc path or skip web files if not needed
+if [ -d "/usr/share/novnc" ]; then
+  websockify --web=/usr/share/novnc 6080 localhost:5900 &
+else
+  echo "noVNC web files not found, starting websockify without web interface..."
+  websockify 6080 localhost:5900 &
+fi
 WEBSOCKIFY_PID=$!
 
 # Wait a bit for services to start
