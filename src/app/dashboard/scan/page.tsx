@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { is } from "drizzle-orm";
 import Loader from "@/components/Loader";
+import LiveBrowserView from "@/components/LiveBrowserView";
 
 interface ScanResult {
   testName: string;
@@ -120,20 +121,31 @@ export default function ScanPage() {
 
         const reportData = await response.json();
         
-        if (reportData.scan?.status === 'completed') {
-          setResults(reportData.results || []);
-          setScanCompleted(true);
-          setIsScanning(false);
-        } else if (reportData.scan?.status === 'failed') {
-          throw new Error('Scan failed: ' + (reportData.scan.errorMessage || 'Unknown error'));
-        } else {
-          // Still running, continue polling
-          if (attempts < maxAttempts) {
-            attempts++;
-            setTimeout(poll, 5000);
-          } else {
-            throw new Error('Scan timeout');
+        if (reportData.success && reportData.data) {
+          const { scan, results, progress } = reportData.data;
+          
+          // Update progress if available
+          if (progress) {
+            setScanProgress(progress);
           }
+          
+          if (scan.status === 'completed') {
+            setResults(results || []);
+            setScanCompleted(true);
+            setIsScanning(false);
+          } else if (scan.status === 'failed') {
+            throw new Error('Scan failed: ' + (scan.errorMessage || 'Unknown error'));
+          } else {
+            // Still running, continue polling
+            if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(poll, 5000);
+            } else {
+              throw new Error('Scan timeout');
+            }
+          }
+        } else {
+          throw new Error('Invalid response format');
         }
       } catch (error) {
         console.error('Polling error:', error);
@@ -276,6 +288,15 @@ export default function ScanPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Live Browser View */}
+            {scanResponse && (
+              <LiveBrowserView 
+                scanId={scanResponse.scanId} 
+                isScanning={isScanning} 
+              />
+            )}
+
             <div className="flex-1 flex items-center justify-center">
               <Loader />
             </div>

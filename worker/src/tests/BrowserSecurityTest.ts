@@ -8,9 +8,15 @@ export class BrowserSecurityTest {
     let page: Page | null = null;
 
     try {
-      // Launch browser
+      // Determine if we should run headless or visible
+      const isLiveViewEnabled = process.env.ENABLE_LIVE_VIEW === 'true';
+      const display = process.env.DISPLAY || ':99';
+
+      console.log(`🎬 Starting browser test - Live view: ${isLiveViewEnabled ? 'ENABLED' : 'DISABLED'}`);
+
+      // Launch browser with live viewing capability
       browser = await chromium.launch({
-        headless: true,
+        headless: !isLiveViewEnabled, // Show browser if live view is enabled
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -18,8 +24,17 @@ export class BrowserSecurityTest {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-extensions',
+          '--disable-plugins',
+          ...(isLiveViewEnabled ? [`--display=${display}`] : [])
+        ],
+        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+        slowMo: isLiveViewEnabled ? 1000 : 0, // Slow down actions for viewing
       });
 
       page = await browser.newPage();
