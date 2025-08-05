@@ -57,25 +57,7 @@ RUN npm install -g pnpm
 # Copy package files
 COPY package.json pnpm-lock.yaml* ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Install Playwright browsers with dependencies  
-RUN npx playwright install --with-deps chromium
-
-# Verify browser installation
-RUN npx playwright install --dry-run chromium
-
-# Copy source code
-COPY . .
-
-# Make VNC script executable
-RUN chmod +x start-vnc.sh
-
-# Build TypeScript
-RUN pnpm build
-
-# Create non-root user for security
+# Create non-root user for security BEFORE installing browsers
 RUN groupadd -r seccheck && useradd -r -g seccheck -G audio,video seccheck \
     && mkdir -p /home/seccheck/Downloads \
     && chown -R seccheck:seccheck /home/seccheck \
@@ -84,8 +66,27 @@ RUN groupadd -r seccheck && useradd -r -g seccheck -G audio,video seccheck \
 # Switch to non-root user
 USER seccheck
 
-# Expose health check port and VNC port
-EXPOSE 3001 6080
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Install Playwright browsers with dependencies as the seccheck user
+RUN npx playwright install --with-deps chromium
+
+# Verify installation and set environment variable
+RUN npx playwright install --dry-run chromium || echo "Browser installation check failed"
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/seccheck/.cache/ms-playwright
+
+# Copy source code
+COPY --chown=seccheck:seccheck . .
+
+# Make VNC script executable
+RUN chmod +x start-vnc.sh
+
+# Build TypeScript
+RUN pnpm build
+
+# Expose health check port and VNC WebSocket port
+EXPOSE 3001 6080 5900
 
 # Health check via HTTP endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

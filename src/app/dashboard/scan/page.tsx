@@ -129,6 +129,11 @@ export default function ScanPage() {
             setScanProgress(progress);
           }
           
+          // Always update results if we have any (even during scanning)
+          if (results && results.length > 0) {
+            setResults(results);
+          }
+          
           if (scan.status === 'completed') {
             setResults(results || []);
             setScanCompleted(true);
@@ -289,13 +294,6 @@ export default function ScanPage() {
               </CardContent>
             </Card>
 
-            {/* Live Browser View */}
-            {scanResponse && (
-              <LiveBrowserView 
-                scanId={scanResponse.scanId} 
-                isScanning={isScanning} 
-              />
-            )}
 
             <div className="flex-1 flex items-center justify-center">
               <Loader />
@@ -304,7 +302,7 @@ export default function ScanPage() {
         )}
 
         {/* Scan Results */}
-        {(results.length > 0 || scanCompleted) && (
+        {results.length > 0 && (
           <div className="space-y-6">
             {/* Results Summary */}
             <Card className="bg-gray-900/50 border-gray-800">
@@ -312,9 +310,17 @@ export default function ScanPage() {
                 <CardTitle className="text-white flex items-center gap-2">
                   <Shield className="w-5 h-5 text-green-400" />
                   Scan Results
+                  {isScanning && (
+                    <Badge variant="outline" className="text-blue-400 border-blue-400 animate-pulse">
+                      LIVE
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Security assessment for {url}
+                  {isScanning 
+                    ? `Security assessment in progress for ${url}` 
+                    : `Security assessment completed for ${url}`
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -338,10 +344,21 @@ export default function ScanPage() {
             {/* Detailed Results */}
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">Detailed Results</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Individual security check results
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white">Detailed Results</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Individual security check results
+                    </CardDescription>
+                  </div>
+                  {scanResponse && (
+                    <LiveBrowserView 
+                      scanId={scanResponse.scanId} 
+                      isScanning={isScanning || results.length > 0}
+                      compact={true}
+                    />
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

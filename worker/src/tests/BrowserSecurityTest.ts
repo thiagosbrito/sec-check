@@ -14,6 +14,64 @@ export class BrowserSecurityTest {
 
       console.log(`🎬 Starting browser test - Live view: ${isLiveViewEnabled ? 'ENABLED' : 'DISABLED'}`);
 
+      // Try to find the correct Chromium executable
+      let executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+      
+      if (!executablePath) {
+        // Try to find browsers dynamically
+        const fs = await import('fs');
+        const path = await import('path');
+        const os = await import('os');
+        const { glob } = await import('glob');
+        
+        const homeDir = os.homedir();
+        console.log(`🏠 Home directory: ${homeDir}`);
+        
+        // Try to find any chromium installation using glob patterns
+        const searchPatterns = [
+          path.join(homeDir, '.cache/ms-playwright/chromium-*/chrome-linux/chrome'),
+          path.join(homeDir, '.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell'),
+          '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+          '/usr/bin/chromium',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/google-chrome',
+        ];
+        
+        for (const pattern of searchPatterns) {
+          try {
+            const matches = await glob(pattern);
+            if (matches && matches.length > 0) {
+              const testPath = matches[0];
+              if (fs.existsSync(testPath)) {
+                executablePath = testPath;
+                console.log(`🎯 Found Chromium at: ${executablePath}`);
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn(`Failed to search pattern ${pattern}:`, e);
+          }
+        }
+        
+        // If still not found, list what's actually in the cache directory
+        if (!executablePath) {
+          try {
+            const cacheDir = path.join(homeDir, '.cache/ms-playwright');
+            console.log(`📂 Checking cache directory: ${cacheDir}`);
+            if (fs.existsSync(cacheDir)) {
+              const contents = fs.readdirSync(cacheDir);
+              console.log(`📁 Cache directory contents:`, contents);
+            } else {
+              console.log(`❌ Cache directory doesn't exist: ${cacheDir}`);
+            }
+          } catch (e) {
+            console.warn('Failed to list cache directory:', e);
+          }
+        }
+      }
+
+      console.log(`🚀 Launching browser with executable: ${executablePath || 'default'}`);
+
       // Launch browser with live viewing capability
       browser = await chromium.launch({
         headless: !isLiveViewEnabled, // Show browser if live view is enabled
@@ -33,7 +91,7 @@ export class BrowserSecurityTest {
           '--disable-plugins',
           ...(isLiveViewEnabled ? [`--display=${display}`] : [])
         ],
-        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+        executablePath: executablePath || undefined,
         slowMo: isLiveViewEnabled ? 1000 : 0, // Slow down actions for viewing
       });
 

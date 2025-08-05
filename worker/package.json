@@ -15,6 +15,7 @@
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
+    "glob": "^11.0.0",
     "ioredis": "^5.7.0",
     "playwright": "^1.54.2",
     "postgres": "^3.4.7",

@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Monitor, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import Loader from '@/components/Loader';
 
 interface LiveBrowserViewProps {
   scanId: string;
   isScanning: boolean;
+  compact?: boolean;
 }
 
 interface StreamData {
@@ -20,7 +22,7 @@ interface StreamData {
   };
 }
 
-export default function LiveBrowserView({ scanId, isScanning }: LiveBrowserViewProps) {
+export default function LiveBrowserView({ scanId, isScanning, compact = false }: LiveBrowserViewProps) {
   const [streamData, setStreamData] = useState<StreamData | null>(null);
   const [showStream, setShowStream] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,22 +51,105 @@ export default function LiveBrowserView({ scanId, isScanning }: LiveBrowserViewP
   };
 
   useEffect(() => {
-    if (isScanning && scanId) {
+    if (scanId) {
       fetchStreamInfo();
     }
-  }, [isScanning, scanId]);
+  }, [scanId]);
 
-  if (!isScanning || !streamData) {
+  if (!scanId) {
     return null;
   }
 
+  // Compact view for header placement
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        {streamData?.liveViewEnabled && (
+          <>
+            <Button
+              onClick={() => setShowStream(!showStream)}
+              variant={showStream ? "destructive" : "outline"}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {showStream ? (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  Hide Live View
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  Live View
+                </>
+              )}
+            </Button>
+            <Badge variant="outline" className="text-green-400 border-green-400">
+              LIVE
+            </Badge>
+          </>
+        )}
+        
+        {showStream && streamData && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+            <div className="bg-gray-900 rounded-lg border border-gray-700 w-[90vw] h-[80vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-white font-semibold">Live Browser View</h3>
+                  <Badge variant="outline" className="text-green-400 border-green-400">
+                    LIVE
+                  </Badge>
+                </div>
+                <Button
+                  onClick={() => setShowStream(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* VNC Stream */}
+              <div className="flex-1 relative bg-black">
+                <iframe
+                  src={streamData.streamUrl}
+                  className="w-full h-full"
+                  allow="fullscreen"
+                  title="Live Browser View"
+                />
+                <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
+                  ● LIVE
+                </div>
+                
+                {/* Waiting message overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <div className="bg-gray-800 rounded-lg p-6 text-center">
+                    <div className="mb-4">
+                      <Loader />
+                    </div>
+                    <p className="text-white mb-2">Waiting for live test to start</p>
+                    <p className="text-gray-400 text-sm">Browser automation will appear during security testing</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Full card view (if still needed elsewhere)
   return (
     <Card className="bg-gray-900/50 border-gray-800">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Monitor className="w-5 h-5 text-blue-400" />
           Live Browser View
-          {streamData.liveViewEnabled ? (
+          {streamData?.liveViewEnabled ? (
             <Badge variant="outline" className="text-green-400 border-green-400">
               LIVE
             </Badge>
@@ -75,7 +160,7 @@ export default function LiveBrowserView({ scanId, isScanning }: LiveBrowserViewP
           )}
         </CardTitle>
         <CardDescription className="text-gray-400">
-          {streamData.instructions.message}
+          {streamData?.instructions?.message || 'Live browser view during scan execution'}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -43,7 +43,7 @@ export async function GET(
         scanId: scan.id,
         streamUrl: vncStreamUrl,
         status: scan.status,
-        liveViewEnabled: process.env.ENABLE_LIVE_VIEW === 'true',
+        liveViewEnabled: true, // Always enabled since Railway worker has VNC
         instructions: {
           message: 'Live browser view is available during scan execution',
           note: 'The stream will show Playwright automating browser interactions in real-time'
