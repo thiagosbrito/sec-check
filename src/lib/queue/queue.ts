@@ -9,6 +9,9 @@ const redisUrl = process.env.REDIS_URL!;
 let processedRedisUrl = redisUrl;
 if (redisUrl.startsWith('redis://') && redisUrl.includes('upstash.io')) {
   processedRedisUrl = redisUrl.replace('redis://', 'rediss://');
+} else if (redisUrl.includes('railway.internal')) {
+  // Fix for Railway Redis - force IPv4 for ioredis
+  processedRedisUrl = redisUrl + '?family=0';
 }
 
 // Configure Redis options (match worker exactly)
