@@ -25,7 +25,9 @@ export class BrowserSecurityTest {
       page = await browser.newPage();
 
       // Set user agent
-      await page.setUserAgent('SecCheck/1.0 Security Scanner');
+      await page.setExtraHTTPHeaders({
+        'User-Agent': 'SecCheck/1.0 Security Scanner'
+      });
 
       // Navigate to URL with timeout
       await page.goto(url, { 
@@ -165,9 +167,9 @@ export class BrowserSecurityTest {
       // Try to execute inline script
       try {
         await page.evaluate(() => {
-          const script = document.createElement('script');
-          script.innerHTML = 'window.cspTestExecuted = true;';
-          document.head.appendChild(script);
+          const script = globalThis.document.createElement('script');
+          script.innerHTML = 'globalThis.cspTestExecuted = true;';
+          globalThis.document.head.appendChild(script);
         });
       } catch (error) {
         cspBlocked = true;
@@ -175,7 +177,7 @@ export class BrowserSecurityTest {
 
       // Check if script executed
       const scriptExecuted = await page.evaluate(() => {
-        return (window as any).cspTestExecuted === true;
+        return (globalThis as any).cspTestExecuted === true;
       });
 
       if (!cspHeader && scriptExecuted) {
@@ -267,18 +269,18 @@ export class BrowserSecurityTest {
         const resources: string[] = [];
         
         // Check images
-        document.querySelectorAll('img[src^="http:"]').forEach(img => {
-          resources.push(`Image: ${(img as HTMLImageElement).src}`);
+        globalThis.document.querySelectorAll('img[src^="http:"]').forEach((img: any) => {
+          resources.push(`Image: ${img.src}`);
         });
         
         // Check scripts
-        document.querySelectorAll('script[src^="http:"]').forEach(script => {
-          resources.push(`Script: ${(script as HTMLScriptElement).src}`);
+        globalThis.document.querySelectorAll('script[src^="http:"]').forEach((script: any) => {
+          resources.push(`Script: ${script.src}`);
         });
         
         // Check stylesheets
-        document.querySelectorAll('link[href^="http:"]').forEach(link => {
-          resources.push(`Stylesheet: ${(link as HTMLLinkElement).href}`);
+        globalThis.document.querySelectorAll('link[href^="http:"]').forEach((link: any) => {
+          resources.push(`Stylesheet: ${link.href}`);
         });
 
         return resources;
