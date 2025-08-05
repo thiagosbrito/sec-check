@@ -29,9 +29,10 @@ export class BrowserSecurityTest {
         
         // Try to find any chromium installation using glob patterns
         const searchPatterns = [
+          '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+          '/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell',
           path.join(homeDir, '.cache/ms-playwright/chromium-*/chrome-linux/chrome'),
           path.join(homeDir, '.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell'),
-          '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
           '/usr/bin/chromium',
           '/usr/bin/chromium-browser',
           '/usr/bin/google-chrome',
@@ -53,19 +54,30 @@ export class BrowserSecurityTest {
           }
         }
         
-        // If still not found, list what's actually in the cache directory
+        // If still not found, list what's actually in the cache directories
         if (!executablePath) {
           try {
-            const cacheDir = path.join(homeDir, '.cache/ms-playwright');
-            console.log(`📂 Checking cache directory: ${cacheDir}`);
-            if (fs.existsSync(cacheDir)) {
-              const contents = fs.readdirSync(cacheDir);
-              console.log(`📁 Cache directory contents:`, contents);
+            // Check root cache first (where browsers are installed)
+            const rootCacheDir = '/root/.cache/ms-playwright';
+            console.log(`📂 Checking root cache directory: ${rootCacheDir}`);
+            if (fs.existsSync(rootCacheDir)) {
+              const contents = fs.readdirSync(rootCacheDir);
+              console.log(`📁 Root cache directory contents:`, contents);
             } else {
-              console.log(`❌ Cache directory doesn't exist: ${cacheDir}`);
+              console.log(`❌ Root cache directory doesn't exist: ${rootCacheDir}`);
+            }
+            
+            // Also check user cache
+            const userCacheDir = path.join(homeDir, '.cache/ms-playwright');
+            console.log(`📂 Checking user cache directory: ${userCacheDir}`);
+            if (fs.existsSync(userCacheDir)) {
+              const contents = fs.readdirSync(userCacheDir);
+              console.log(`📁 User cache directory contents:`, contents);
+            } else {
+              console.log(`❌ User cache directory doesn't exist: ${userCacheDir}`);
             }
           } catch (e) {
-            console.warn('Failed to list cache directory:', e);
+            console.warn('Failed to list cache directories:', e);
           }
         }
       }

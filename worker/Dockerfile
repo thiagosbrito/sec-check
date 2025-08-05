@@ -57,27 +57,27 @@ RUN npm install -g pnpm
 # Copy package files
 COPY package.json pnpm-lock.yaml* ./
 
-# Create non-root user for security BEFORE installing browsers
+# Install dependencies as root first
+RUN pnpm install --frozen-lockfile
+
+# Install Playwright browsers with system dependencies as root
+RUN npx playwright install --with-deps chromium
+
+# Create non-root user for security
 RUN groupadd -r seccheck && useradd -r -g seccheck -G audio,video seccheck \
     && mkdir -p /home/seccheck/Downloads \
     && chown -R seccheck:seccheck /home/seccheck \
     && chown -R seccheck:seccheck /app
 
-# Switch to non-root user
-USER seccheck
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Install Playwright browsers with dependencies as the seccheck user
-RUN npx playwright install --with-deps chromium
-
-# Verify installation and set environment variable
-RUN npx playwright install --dry-run chromium || echo "Browser installation check failed"
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/seccheck/.cache/ms-playwright
+# Set Playwright browsers path to be accessible by seccheck user
+ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+RUN chmod -R 755 /root/.cache/ms-playwright || true
 
 # Copy source code
 COPY --chown=seccheck:seccheck . .
+
+# Switch to non-root user
+USER seccheck
 
 # Make VNC script executable
 RUN chmod +x start-vnc.sh
