@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Scan, AlertTriangle, CheckCircle, Clock, Globe, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { is } from "drizzle-orm";
+import Loader from "@/components/Loader";
 
 interface ScanResult {
   testName: string;
@@ -245,34 +247,39 @@ export default function ScanPage() {
 
         {/* Scanning Progress */}
         {isScanning && !error && (
-          <Card className="bg-gray-900/50 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="w-5 h-5 text-purple-400 animate-pulse" />
-                Scanning in Progress
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Running security checks on {url}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Progress value={scanProgress?.percentage} className="w-full" />
-                <div className="flex items-center gap-2">
-                  <Scan className="w-4 h-4 animate-spin text-purple-400" />
-                  <span className="text-sm text-gray-400">
-                    {scanResponse ? 
-                      `Scan ID: ${scanResponse.scanId} - Estimated completion: ${scanResponse.estimatedCompletionTime}` :
-                      'Initializing scan...'
-                    }
-                  </span>
+          <>
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-purple-400 animate-pulse" />
+                  Scanning in Progress
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Running security checks on {url}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Progress value={scanProgress?.percentage} className="w-full" />
+                  <div className="flex items-center gap-2">
+                    <Scan className="w-4 h-4 animate-spin text-purple-400" />
+                    <span className="text-sm text-gray-400">
+                      {scanResponse ? 
+                        `Scan ID: ${scanResponse.scanId} - Estimated completion: ${scanResponse.estimatedCompletionTime}` :
+                        'Initializing scan...'
+                      }
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    This may take 1-3 minutes to complete. The page will automatically update when results are ready.
+                  </p>
                 </div>
-                <p className="text-sm text-gray-400">
-                  This may take 1-3 minutes to complete. The page will automatically update when results are ready.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            <div className="flex-1 flex items-center justify-center">
+              <Loader />
+            </div>
+          </>
         )}
 
         {/* Scan Results */}

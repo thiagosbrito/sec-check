@@ -31,7 +31,7 @@ if (!redisUrl) {
   throw new Error('REDIS_URL environment variable is required');
 }
 
-// Ensure TLS for Upstash
+// Handle both Upstash and Railway Redis URLs
 let processedRedisUrl = redisUrl;
 if (redisUrl.startsWith('redis://') && redisUrl.includes('upstash.io')) {
   processedRedisUrl = redisUrl.replace('redis://', 'rediss://');
@@ -47,7 +47,7 @@ const redisOptions: any = {
   retryDelayOnFailover: 100,
 };
 
-// Only add TLS for Upstash URLs
+// Add TLS for Upstash URLs (Railway Redis typically doesn't need TLS)
 if (processedRedisUrl.includes('upstash.io')) {
   redisOptions.tls = {
     rejectUnauthorized: false, // Important for Upstash

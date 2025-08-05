@@ -77,6 +77,9 @@ importers:
       lucide-react:
         specifier: ^0.536.0
         version: 0.536.0(react@19.1.0)
+      motion:
+        specifier: ^12.23.12
+        version: 12.23.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       next:
         specifier: 15.4.5
         version: 15.4.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -92,6 +95,9 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+      react-lottie:
+        specifier: ^1.2.10
+        version: 1.2.10(react@19.1.0)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -114,6 +120,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.1.7(@types/react@19.1.9)
+      '@types/react-lottie':
+        specifier: ^1.2.10
+        version: 1.2.10
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.4
@@ -1239,6 +1248,9 @@ packages:
     peerDependencies:
       '@types/react': ^19.0.0
 
+  '@types/react-lottie@1.2.10':
+    resolution: {integrity: sha512-rCd1p3US4ELKJlqwVnP0h5b24zt5p9OCvKUoNpYExLqwbFZMWEiJ6EGLMmH7nmq5V7KomBIbWO2X/XRFsL0vCA==}
+
   '@types/react@19.1.9':
     resolution: {integrity: sha512-WmdoynAX8Stew/36uTSVMcLJJ1KRh6L3IZRx1PZ7qJtBqT3dYTgyDTx8H1qoRghErydW7xw9mSJ3wS//tCRpFA==}
 
@@ -1484,6 +1496,9 @@ packages:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
     engines: {node: '>= 0.4'}
 
+  babel-runtime@6.26.0:
+    resolution: {integrity: sha512-ITKNuq2wKlW1fJg9sSW52eepoYgZBggvOAHC0u/CYu/qxQ9EVzThCgR69BnSXLHjy2f7SY5zaQ4yt7H9ZVxY2g==}
+
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
@@ -1578,6 +1593,10 @@ packages:
   cookie@1.0.2:
     resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
     engines: {node: '>=18'}
+
+  core-js@2.6.12:
+    resolution: {integrity: sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==}
+    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
 
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
@@ -2401,6 +2420,9 @@ packages:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
 
+  lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
+
   lucide-react@0.536.0:
     resolution: {integrity: sha512-2PgvNa9v+qz4Jt/ni8vPLt4jwoFybXHuubQT8fv4iCW5TjDxkbZjNZZHa485ad73NSEn/jdsEtU57eE1g+ma8A==}
     peerDependencies:
@@ -2461,6 +2483,20 @@ packages:
 
   motion-utils@12.23.6:
     resolution: {integrity: sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==}
+
+  motion@12.23.12:
+    resolution: {integrity: sha512-8jCD8uW5GD1csOoqh1WhH1A6j5APHVE15nuBkFeRiMzYBdRwyAHmSP/oXSuW0WJPZRXTFdBoG4hY9TFWNhhwng==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -2650,6 +2686,11 @@ packages:
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
+  react-lottie@1.2.10:
+    resolution: {integrity: sha512-x0eWX3Z6zSx1XM5QSjnLupc6D22LlMCB0PH06O/N/epR2hsLaj1Vxd9RtMnbbEHjJ/qlsgHJ6bpN3vnZI92hjw==}
+    peerDependencies:
+      react: '>=15.0.0'
+
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
     engines: {node: '>=10'}
@@ -2695,6 +2736,9 @@ packages:
   reflect.getprototypeof@1.0.10:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
     engines: {node: '>= 0.4'}
+
+  regenerator-runtime@0.11.1:
+    resolution: {integrity: sha512-MguG95oij0fC3QV3URf4V2SDYGJhJnJGqvIIgdECeODCT98wSWDAJ94SSuVpYQUoTcGUIL6L4yNB7j1DFFHSBg==}
 
   regexp.prototype.flags@1.5.4:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
@@ -3890,6 +3934,10 @@ snapshots:
     dependencies:
       '@types/react': 19.1.9
 
+  '@types/react-lottie@1.2.10':
+    dependencies:
+      '@types/react': 19.1.9
+
   '@types/react@19.1.9':
     dependencies:
       csstype: 3.1.3
@@ -4164,6 +4212,11 @@ snapshots:
 
   axobject-query@4.1.0: {}
 
+  babel-runtime@6.26.0:
+    dependencies:
+      core-js: 2.6.12
+      regenerator-runtime: 0.11.1
+
   balanced-match@1.0.2: {}
 
   boolbase@1.0.0: {}
@@ -4281,6 +4334,8 @@ snapshots:
   concat-map@0.0.1: {}
 
   cookie@1.0.2: {}
+
+  core-js@2.6.12: {}
 
   cron-parser@4.9.0:
     dependencies:
@@ -5208,6 +5263,8 @@ snapshots:
     dependencies:
       js-tokens: 4.0.0
 
+  lottie-web@5.13.0: {}
+
   lucide-react@0.536.0(react@19.1.0):
     dependencies:
       react: 19.1.0
@@ -5256,6 +5313,14 @@ snapshots:
       motion-utils: 12.23.6
 
   motion-utils@12.23.6: {}
+
+  motion@12.23.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      framer-motion: 12.23.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   ms@2.1.3: {}
 
@@ -5454,6 +5519,13 @@ snapshots:
 
   react-is@16.13.1: {}
 
+  react-lottie@1.2.10(react@19.1.0):
+    dependencies:
+      babel-runtime: 6.26.0
+      lottie-web: 5.13.0
+      prop-types: 15.8.1
+      react: 19.1.0
+
   react-remove-scroll-bar@2.3.8(@types/react@19.1.9)(react@19.1.0):
     dependencies:
       react: 19.1.0
@@ -5499,6 +5571,8 @@ snapshots:
       get-intrinsic: 1.3.0
       get-proto: 1.0.1
       which-builtin-type: 1.2.1
+
+  regenerator-runtime@0.11.1: {}
 
   regexp.prototype.flags@1.5.4:
     dependencies:

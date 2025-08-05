@@ -10,19 +10,16 @@ if (!process.env.DATABASE_URL) {
 // Create the connection using DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
 
-// Configure connection options based on URL
-const isLocalConnection = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+console.log('App DB target:', new URL(process.env.DATABASE_URL!).host);
 
 const client = postgres(connectionString, { 
   prepare: false,
-  // Only use SSL for remote connections
-  ...(isLocalConnection ? {} : { ssl: { rejectUnauthorized: false } }),
-  // Optimized connection settings for local development
-  max: 5,                    // Smaller pool for local dev
-  idle_timeout: 300,         // 5 minutes
-  connect_timeout: 10,       // 10 seconds
-  max_lifetime: 1800,        // 30 minutes max connection lifetime
-  debug: process.env.NODE_ENV === 'development', // Enable debug logging in dev
+  // Enable SSL for security
+  ssl: { rejectUnauthorized: false },
+  // Connection pool settings for security
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
 });
 
 // Create the database instance
