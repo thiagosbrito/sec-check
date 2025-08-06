@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db/connection';
 import { scans, scanResults } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { getScanJobStatus } from '@/lib/queue/queue';
+import { createClient } from '@/lib/supabase/server';
 
 // Route params schema
 const paramsSchema = z.object({
@@ -15,11 +16,29 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
     // Validate scan ID
     const resolvedParams = await params;
     const { id: scanId } = paramsSchema.parse(resolvedParams);
 
-    // Get scan details
+    // Build where clause based on authentication
+    let whereClause;
+    if (user) {
+      // Authenticated user: only their own scans
+      whereClause = and(eq(scans.id, scanId), eq(scans.userId, user.id));
+    } else {
+      // Anonymous user: only public scans with no user ID
+      whereClause = and(
+        eq(scans.id, scanId), 
+        eq(scans.isPublicScan, true), 
+        isNull(scans.userId)
+      );
+    }
+
+    // Get scan details with user authorization
     const [scan] = await db
       .select({
         id: scans.id,
@@ -37,14 +56,16 @@ export async function GET(
         infoCount: scans.infoCount,
         errorMessage: scans.errorMessage,
         scanConfig: scans.scanConfig,
+        userId: scans.userId,
+        isPublicScan: scans.isPublicScan,
       })
       .from(scans)
-      .where(eq(scans.id, scanId))
+      .where(whereClause)
       .limit(1);
 
     if (!scan) {
       return NextResponse.json(
-        { error: 'Scan not found' },
+        { error: 'Scan not found or access denied' },
         { status: 404 }
       );
     }

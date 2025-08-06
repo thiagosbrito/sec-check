@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useClientAuth } from "@/hooks/useClientAuth";
+import type { Report } from "@/lib/db/schema";
 
 interface ReportItem {
   id: string;
@@ -22,17 +24,21 @@ interface ReportItem {
   testsRun: number;
   reportSize: string;
   categories: string[];
+  summary?: Report['summary'];
 }
 
 export default function ReportsPage() {
+  const { user } = useClientAuth();
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredReports, setFilteredReports] = useState<ReportItem[]>([]);
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (user) {
+      fetchReports();
+    }
+  }, [user]);
 
   useEffect(() => {
     // Filter reports based on search term
@@ -45,51 +51,14 @@ export default function ReportsPage() {
 
   const fetchReports = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/reports');
-      // const data = await response.json();
+      const response = await fetch('/api/reports');
+      const data = await response.json();
       
-      // Mock data for now
-      const mockData: ReportItem[] = [
-        {
-          id: "report-1",
-          scanId: "1",
-          url: "https://www.pro-contaty.com.br",
-          domain: "pro-contaty.com.br",
-          createdAt: "2025-01-06T10:33:15Z",
-          vulnerabilitiesFound: 7,
-          riskScore: "high",
-          testsRun: 4,
-          reportSize: "2.3 MB",
-          categories: ["A05", "A03", "A07", "A02"]
-        },
-        {
-          id: "report-2",
-          scanId: "2",
-          url: "https://example.com",
-          domain: "example.com",
-          createdAt: "2025-01-05T15:22:45Z",
-          vulnerabilitiesFound: 2,
-          riskScore: "medium",
-          testsRun: 4,
-          reportSize: "1.8 MB",
-          categories: ["A05", "A07"]
-        },
-        {
-          id: "report-3",
-          scanId: "3",
-          url: "https://secure-site.com",
-          domain: "secure-site.com",
-          createdAt: "2025-01-04T09:17:30Z",
-          vulnerabilitiesFound: 0,
-          riskScore: "low",
-          testsRun: 4,
-          reportSize: "1.2 MB",
-          categories: []
-        }
-      ];
-      
-      setReports(mockData);
+      if (data.success) {
+        setReports(data.data);
+      } else {
+        console.error('Failed to fetch reports:', data.error);
+      }
     } catch (error) {
       console.error('Failed to fetch reports:', error);
     } finally {

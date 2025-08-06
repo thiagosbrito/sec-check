@@ -6,8 +6,16 @@ export default defineConfig({
   out: './src/lib/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    host: 'aws-0-eu-central-1.pooler.supabase.com',
+    port: 6543,
+    user: 'postgres.omtmvbptfvuxkxdhyeup',
+    password: 'l5zupPZrDUNxpFlh',
+    database: 'postgres',
+    ssl: { rejectUnauthorized: false },
   },
   verbose: true,
   strict: true,
+  introspect: {
+    casing: 'camel'
+  }
 });

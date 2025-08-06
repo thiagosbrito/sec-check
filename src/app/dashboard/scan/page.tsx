@@ -2,8 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { URLInput } from "@/components/ui/url-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -73,15 +72,16 @@ function ScanContent() {
     }
   }, [searchParams]);
 
-  const handleScan = async () => {
-    if (!url) return;
-
+  const handleScan = async (normalizedUrl: string) => {
     setIsScanning(true);
     setScanProgress(null);
     setScanCompleted(false);
     setResults([]);
     setError(null);
     setScanResponse(null);
+
+    // Update the URL state with the normalized URL
+    setUrl(normalizedUrl);
 
     try {
       // Start the scan
@@ -91,7 +91,7 @@ function ScanContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: url,
+          url: normalizedUrl,
           isPublicScan: true,
         }),
       });
@@ -233,34 +233,17 @@ function ScanContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Input
-                  placeholder="https://example.com"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
-                  disabled={isScanning}
-                />
-              </div>
-              <Button
-                onClick={handleScan}
-                disabled={!url || isScanning}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-8"
-              >
-                {isScanning ? (
-                  <>
-                    <Scan className="w-4 h-4 mr-2 animate-spin" />
-                    Scanning...
-                  </>
-                ) : (
-                  <>
-                    <Scan className="w-4 h-4 mr-2" />
-                    Start Scan
-                  </>
-                )}
-              </Button>
-            </div>
+            <URLInput
+              value={url}
+              onChange={setUrl}
+              onSubmit={handleScan}
+              placeholder="https://example.com"
+              disabled={isScanning}
+              isLoading={isScanning}
+              loadingText="Scanning..."
+              submitText="Start Scan"
+              variant="dashboard"
+            />
           </CardContent>
         </Card>
 

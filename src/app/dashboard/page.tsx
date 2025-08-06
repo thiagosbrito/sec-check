@@ -1,19 +1,48 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Scan, FileText, Activity, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { useClientAuth } from "@/hooks/useClientAuth";
+
+interface UsageStats {
+  user: {
+    plan: string;
+    scanLimit: number;
+  };
+  usage: {
+    today: {
+      scans: number;
+      remaining: number;
+      limit: number;
+      percentage: number;
+    };
+    total: {
+      scans: number;
+      vulnerabilities: {
+        total: number;
+        critical: number;
+        high: number;
+        medium: number;
+        low: number;
+      };
+    };
+  };
+  resetTime: string;
+}
 
 function DashboardContent() {
   const { user } = useClientAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Check if there's a redirectUrl parameter and redirect to scan page
   useEffect(() => {
@@ -22,6 +51,28 @@ function DashboardContent() {
       router.push(`/dashboard/scan?url=${encodeURIComponent(redirectUrl)}`);
     }
   }, [searchParams, user, router]);
+
+  // Fetch usage statistics
+  useEffect(() => {
+    const fetchUsageStats = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await fetch('/api/usage');
+        const data = await response.json();
+        
+        if (data.success) {
+          setUsageStats(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsageStats();
+  }, [user]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -51,36 +102,101 @@ function DashboardContent() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Total Scans Card with Usage Limit */}
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Scans</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Daily Scans</CardTitle>
               <Scan className="h-4 w-4 text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">0</div>
-              <p className="text-xs text-gray-400">No scans yet</p>
+              {loading ? (
+                <div className="text-2xl font-bold text-gray-500">...</div>
+              ) : usageStats?.usage.total.scans === 0 ? (
+                <>
+                  <div className="text-2xl font-bold text-white">0</div>
+                  <p className="text-xs text-gray-400">No scans yet</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-white">
+                    {usageStats?.usage.today.scans || 0} / {usageStats?.usage.today.limit || 10}
+                  </div>
+                  <div className="space-y-2">
+                    <Progress 
+                      value={usageStats?.usage.today.percentage || 0} 
+                      className="h-2"
+                    />
+                    <p className="text-xs text-gray-400">
+                      {usageStats?.usage.today.remaining || 0} remaining today
+                    </p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
+          {/* Vulnerabilities Card with Real Data */}
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-300">Vulnerabilities Found</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">0</div>
-              <p className="text-xs text-gray-400">Start scanning to see results</p>
+              {loading ? (
+                <div className="text-2xl font-bold text-gray-500">...</div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-white">
+                    {usageStats?.usage.total.vulnerabilities.total || 0}
+                  </div>
+                  {usageStats?.usage.total.scans === 0 ? (
+                    <p className="text-xs text-gray-400">Start scanning to see results</p>
+                  ) : (
+                    <div className="text-xs text-gray-400 space-y-1">
+                      {(usageStats?.usage.total.vulnerabilities.critical ?? 0) > 0 && (
+                        <div className="text-red-400">
+                          {usageStats?.usage.total.vulnerabilities.critical} Critical
+                        </div>
+                      )}
+                      {(usageStats?.usage.total.vulnerabilities.high ?? 0) > 0 && (
+                        <div className="text-orange-400">
+                          {usageStats?.usage.total.vulnerabilities.high} High
+                        </div>
+                      )}
+                      {(usageStats?.usage.total.vulnerabilities.medium ?? 0) > 0 && (
+                        <div className="text-yellow-400">
+                          {usageStats?.usage.total.vulnerabilities.medium} Medium
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
+          {/* Total Scans Card */}
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Reports Generated</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Total Scans</CardTitle>
               <FileText className="h-4 w-4 text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">0</div>
-              <p className="text-xs text-gray-400">No reports available</p>
+              {loading ? (
+                <div className="text-2xl font-bold text-gray-500">...</div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-white">
+                    {usageStats?.usage.total.scans || 0}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {usageStats?.usage.total.scans === 0 
+                      ? "No scans yet" 
+                      : `${usageStats?.user.plan.toUpperCase()} plan`
+                    }
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

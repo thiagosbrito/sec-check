@@ -30,33 +30,52 @@ CREATE POLICY "Users can delete own domains" ON domains
   FOR DELETE USING (auth.uid()::text = user_id::text);
 
 -- Scans table policies
--- Users can view their own scans + public scans (for free tier)
+-- Users can ONLY view their own scans - no cross-user access
 CREATE POLICY "Users can view own scans" ON scans
-  FOR SELECT USING (
-    auth.uid()::text = user_id::text OR 
-    (is_public_scan = true AND user_id IS NULL)
-  );
+  FOR SELECT USING (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Users can insert own scans" ON scans
-  FOR INSERT WITH CHECK (
-    auth.uid()::text = user_id::text OR 
-    (is_public_scan = true AND user_id IS NULL)
-  );
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Users can update own scans" ON scans
   FOR UPDATE USING (auth.uid()::text = user_id::text);
 
+-- Allow anonymous users to create public scans (for free tier testing)
+CREATE POLICY "Anonymous can create public scans" ON scans
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NULL AND 
+    is_public_scan = true AND 
+    user_id IS NULL
+  );
+
+-- Anonymous users can view public scans (only ones with user_id IS NULL)
+CREATE POLICY "Anonymous can view public scans" ON scans
+  FOR SELECT USING (
+    auth.uid() IS NULL AND 
+    is_public_scan = true AND 
+    user_id IS NULL
+  );
+
 -- Scan results table policies
--- Users can only view results for scans they own or public scans
+-- Users can ONLY view results for scans they own - no cross-user access
 CREATE POLICY "Users can view scan results" ON scan_results
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM scans 
       WHERE scans.id = scan_results.scan_id 
-      AND (
-        auth.uid()::text = scans.user_id::text OR 
-        (scans.is_public_scan = true AND scans.user_id IS NULL)
-      )
+      AND auth.uid()::text = scans.user_id::text
+    )
+  );
+
+-- Anonymous users can view results for public scans (only ones they created)
+CREATE POLICY "Anonymous can view public scan results" ON scan_results
+  FOR SELECT USING (
+    auth.uid() IS NULL AND
+    EXISTS (
+      SELECT 1 FROM scans 
+      WHERE scans.id = scan_results.scan_id 
+      AND scans.is_public_scan = true 
+      AND scans.user_id IS NULL
     )
   );
 
@@ -69,16 +88,25 @@ CREATE POLICY "System can insert scan results" ON scan_results
   );
 
 -- Reports table policies
--- Users can only view reports for scans they own or public scans
+-- Users can ONLY view reports for scans they own - no cross-user access
 CREATE POLICY "Users can view reports" ON reports
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM scans 
       WHERE scans.id = reports.scan_id 
-      AND (
-        auth.uid()::text = scans.user_id::text OR 
-        (scans.is_public_scan = true AND scans.user_id IS NULL)
-      )
+      AND auth.uid()::text = scans.user_id::text
+    )
+  );
+
+-- Anonymous users can view reports for public scans (only ones they created)
+CREATE POLICY "Anonymous can view public reports" ON reports
+  FOR SELECT USING (
+    auth.uid() IS NULL AND
+    EXISTS (
+      SELECT 1 FROM scans 
+      WHERE scans.id = reports.scan_id 
+      AND scans.is_public_scan = true 
+      AND scans.user_id IS NULL
     )
   );
 

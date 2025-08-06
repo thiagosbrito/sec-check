@@ -75,3 +75,26 @@ export const scanResults = pgTable('scan_results', {
   falsePositive: boolean('false_positive').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// Reports table
+export const reports = pgTable('reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scanId: uuid('scan_id').notNull().references(() => scans.id, { onDelete: 'cascade' }),
+  format: varchar('format', { length: 20 }).notNull().default('json'), // 'json', 'pdf', 'html'
+  
+  // Report content
+  summary: jsonb('summary'), // executive summary, scores, etc.
+  content: jsonb('content'), // full report data
+  
+  // Metadata
+  generatedAt: timestamp('generated_at').notNull().defaultNow(),
+  version: varchar('version', { length: 10 }).default('1.0'),
+  
+  // File storage (for PDF/HTML reports)
+  fileUrl: varchar('file_url', { length: 500 }),
+  fileSize: integer('file_size'),
+  
+  // Branding (for pro/enterprise)
+  isCustomBranded: boolean('is_custom_branded').default(false),
+  brandingConfig: jsonb('branding_config'),
+});

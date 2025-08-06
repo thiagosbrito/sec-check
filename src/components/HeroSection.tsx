@@ -3,9 +3,8 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Shield, Scan, Lock, Zap } from "lucide-react";
+import { URLInput } from "@/components/ui/url-input";
+import { Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HeroSection() {
@@ -14,19 +13,17 @@ export default function HeroSection() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const handleScan = async () => {
-    if (!url) return;
-    
+  const handleScan = async (normalizedUrl: string) => {
     // Check if user is authenticated
     if (!user) {
       // Redirect to sign-up with the URL as a query parameter
-      const encodedUrl = encodeURIComponent(url);
+      const encodedUrl = encodeURIComponent(normalizedUrl);
       router.push(`/sign-up?redirectUrl=${encodedUrl}`);
       return;
     }
     
     // User is authenticated, redirect to scan page with URL
-    const encodedUrl = encodeURIComponent(url);
+    const encodedUrl = encodeURIComponent(normalizedUrl);
     router.push(`/dashboard/scan?url=${encodedUrl}`);
   };
 
@@ -88,49 +85,19 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="max-w-2xl mx-auto mb-16"
+          className="mb-16"
         >
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur-lg opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-            <div className="relative bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
-                    <Lock className="w-5 h-5 text-gray-500" />
-                  </div>
-                  <Input
-                    type="url"
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className="h-14 text-lg bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white placeholder:text-gray-400 pl-12"
-                    disabled={isScanning}
-                  />
-                </div>
-                <Button
-                  onClick={handleScan}
-                  disabled={!url || isScanning}
-                  className="h-14 px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold text-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isScanning ? (
-                    <motion.div
-                      className="flex items-center gap-2"
-                      animate={{ opacity: [1, 0.5, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <Scan className="w-5 h-5" />
-                      Scanning...
-                    </motion.div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-5 h-5" />
-                      Start Scan
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <URLInput
+            value={url}
+            onChange={setUrl}
+            onSubmit={handleScan}
+            placeholder="https://example.com"
+            disabled={isScanning}
+            isLoading={isScanning}
+            loadingText="Scanning..."
+            submitText="Start Scan"
+            variant="hero"
+          />
           
           {/* Quick info */}
           <motion.div
