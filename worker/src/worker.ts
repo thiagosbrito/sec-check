@@ -2,7 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { scans, scanResults } from './schema';
+import { scans, scanResults, reports } from './schema';
 import { eq } from 'drizzle-orm';
 import { SecurityScanner } from './scanner';
 import type { ScanJobData, ScanJobResult, ScanJobProgress } from './types';
@@ -115,6 +115,9 @@ const worker = new Worker<ScanJobData, ScanJobResult>(
       // Store results in database
       await storeResults(result);
 
+      // Generate and store report
+      await generateReport(result);
+
       // Update scan status
       await db
         .update(scans)
@@ -205,6 +208,136 @@ setInterval(async () => {
     console.error('Periodic queue check failed:', error);
   }
 }, 30000); // Check every 30 seconds
+
+// Generate and store report in database
+async function generateReport(result: ScanJobResult): Promise<void> {
+  try {
+    // Get scan details from database
+    const [scan] = await db
+      .select({ url: scans.url, domain: scans.domain })
+      .from(scans)
+      .where(eq(scans.id, result.scanId))
+      .limit(1);
+
+    if (!scan) {
+      console.error('Scan not found for report generation:', result.scanId);
+      return;
+    }
+
+    // Generate executive summary
+    const summary = {
+      scanId: result.scanId,
+      url: scan.url,
+      domain: scan.domain,
+      scanDate: new Date().toISOString(),
+      totalVulnerabilities: result.totalVulnerabilities,
+      riskScore: calculateRiskScore(result),
+      severityBreakdown: {
+        critical: result.criticalCount,
+        high: result.highCount,
+        medium: result.mediumCount,
+        low: result.lowCount,
+        info: result.infoCount,
+      },
+      testsSummary: {
+        total: result.results.length,
+        passed: result.results.filter(r => r.status === 'pass').length,
+        failed: result.results.filter(r => r.status === 'fail').length,
+        warnings: result.results.filter(r => r.status === 'warning').length,
+      },
+      recommendations: generateRecommendations(result),
+      complianceStatus: {
+        owaspTop10: calculateOwaspCompliance(result),
+      }
+    };
+
+    // Store full report content
+    const content = {
+      scan: {
+        id: result.scanId,
+        url: scan.url,
+        domain: scan.domain,
+        timestamp: new Date().toISOString(),
+        duration: result.executionTime || 0,
+      },
+      summary,
+      results: result.results,
+      metadata: {
+        scannerVersion: '1.0.0',
+        framework: 'OWASP Top 10 2021',
+        generatedAt: new Date().toISOString(),
+      }
+    };
+
+    // Insert report into database
+    await db.insert(reports).values({
+      scanId: result.scanId,
+      format: 'json',
+      summary,
+      content,
+      version: '1.0',
+      isCustomBranded: false,
+    });
+
+    console.log(`Generated report for scan ${result.scanId}`);
+  } catch (error) {
+    console.error(`Failed to generate report for scan ${result.scanId}:`, error);
+    // Don't throw - report generation failure shouldn't fail the scan
+  }
+}
+
+// Calculate risk score based on vulnerabilities found
+function calculateRiskScore(result: ScanJobResult): 'low' | 'medium' | 'high' | 'critical' {
+  if (result.criticalCount > 0) return 'critical';
+  if (result.highCount > 0) return 'high';  
+  if (result.mediumCount > 0) return 'medium';
+  return 'low';
+}
+
+// Generate prioritized recommendations
+function generateRecommendations(result: ScanJobResult): string[] {
+  const recommendations: string[] = [];
+  
+  if (result.criticalCount > 0) {
+    recommendations.push('🚨 Address critical security vulnerabilities immediately');
+  }
+  if (result.highCount > 0) {
+    recommendations.push('⚠️ Fix high-severity vulnerabilities within 24-48 hours');
+  }
+  if (result.mediumCount > 0) {
+    recommendations.push('📋 Plan remediation for medium-severity issues');
+  }
+  
+  const failedTests = result.results.filter(r => r.status === 'fail');
+  const commonIssues = new Set<string>();
+  
+  failedTests.forEach(test => {
+    if (test.owaspCategory === 'A05') commonIssues.add('Review security configuration settings');
+    if (test.owaspCategory === 'A07') commonIssues.add('Strengthen authentication and session management');
+    if (test.owaspCategory === 'A03') commonIssues.add('Implement input validation and sanitization');
+  });
+  
+  recommendations.push(...Array.from(commonIssues));
+  
+  if (recommendations.length === 0) {
+    recommendations.push('✅ No critical issues found - maintain current security practices');
+  }
+  
+  return recommendations;
+}
+
+// Calculate OWASP Top 10 compliance percentage
+function calculateOwaspCompliance(result: ScanJobResult): number {
+  const owaspCategories = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'];
+  const testedCategories = new Set(result.results.map(r => r.owaspCategory));
+  const passedCategories = new Set(
+    result.results
+      .filter(r => r.status === 'pass')
+      .map(r => r.owaspCategory)
+  );
+  
+  return Math.round((passedCategories.size / owaspCategories.length) * 100);
+}
 
 // Store scan results in database
 async function storeResults(result: ScanJobResult): Promise<void> {

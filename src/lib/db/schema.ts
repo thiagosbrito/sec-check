@@ -50,7 +50,7 @@ export const userPlanEnum = pgEnum('user_plan', [
 
 // Users table
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey(), // Use Supabase Auth UUID, don't auto-generate
   email: varchar('email', { length: 255 }).notNull().unique(),
   name: varchar('name', { length: 255 }),
   plan: userPlanEnum('plan').notNull().default('free'),

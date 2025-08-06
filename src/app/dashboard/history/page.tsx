@@ -44,48 +44,16 @@ export default function HistoryPage() {
 
   const fetchScanHistory = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/scans/history');
-      // const data = await response.json();
-      
-      // Mock data for now
-      const mockData: ScanHistoryItem[] = [
-        {
-          id: "1",
-          url: "https://www.pro-contaty.com.br",
-          domain: "pro-contaty.com.br",
-          status: "completed",
-          createdAt: "2025-01-06T10:30:00Z",
-          completedAt: "2025-01-06T10:33:15Z",
-          vulnerabilitiesFound: 7,
-          riskScore: "high",
-          testsRun: 4
-        },
-        {
-          id: "2",
-          url: "https://example.com",
-          domain: "example.com",
-          status: "completed",
-          createdAt: "2025-01-05T15:20:00Z",
-          completedAt: "2025-01-05T15:22:45Z",
-          vulnerabilitiesFound: 2,
-          riskScore: "medium",
-          testsRun: 4
-        },
-        {
-          id: "3",
-          url: "https://secure-site.com",
-          domain: "secure-site.com",
-          status: "completed",
-          createdAt: "2025-01-04T09:15:00Z",
-          completedAt: "2025-01-04T09:17:30Z",
-          vulnerabilitiesFound: 0,
-          riskScore: "low",
-          testsRun: 4
-        }
-      ];
-      
-      setScans(mockData);
+      const response = await fetch('/api/scans/history');
+      const data = await response.json();
+      console.log(response)
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch scan history');
+      }
+
+      if (data.success) {
+        setScans(data.data);
+      } 
     } catch (error) {
       console.error('Failed to fetch scan history:', error);
     } finally {
