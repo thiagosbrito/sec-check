@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
-import { reports, scans } from '@/lib/db/schema';
+import { reports, scans, type Report } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
 
@@ -95,12 +95,15 @@ function calculateRiskScore(counts: { critical: number; high: number; medium: nu
 }
 
 // Helper function to get number of tests run from report content
-function getTestsRun(content: any): number {
+function getTestsRun(content: Report['content']): number {
   if (!content || typeof content !== 'object') return 0;
   
   // Try to get from results array
-  if (content.results && Array.isArray(content.results)) {
-    return content.results.length;
+  if (content && typeof content === 'object' && 'results' in content) {
+    const results = (content as { results?: unknown }).results;
+    if (Array.isArray(results)) {
+      return results.length;
+    }
   }
   
   // Default number of tests in our security suite
@@ -119,7 +122,7 @@ function formatFileSize(bytes: number): string {
 }
 
 // Helper function to calculate report size from content
-function calculateReportSize(content: any): number {
+function calculateReportSize(content: Report['content']): number {
   if (!content) return 1024; // 1KB default
   
   // Estimate size based on JSON string length
@@ -128,18 +131,24 @@ function calculateReportSize(content: any): number {
 }
 
 // Helper function to extract OWASP categories from report content
-function getOwaspCategories(content: any): string[] {
+function getOwaspCategories(content: Report['content']): string[] {
   if (!content || typeof content !== 'object') return [];
   
   const categories = new Set<string>();
   
   // Extract from results if available
-  if (content.results && Array.isArray(content.results)) {
-    content.results.forEach((result: any) => {
-      if (result.owaspCategory && result.status === 'fail') {
-        categories.add(result.owaspCategory);
-      }
-    });
+  if (content && typeof content === 'object' && 'results' in content) {
+    const results = (content as { results?: unknown }).results;
+    if (Array.isArray(results)) {
+      results.forEach((result: unknown) => {
+        if (result && typeof result === 'object' && 'owaspCategory' in result && 'status' in result) {
+          const typedResult = result as { owaspCategory?: string; status?: string };
+          if (typedResult.owaspCategory && typedResult.status === 'fail') {
+            categories.add(typedResult.owaspCategory);
+          }
+        }
+      });
+    }
   }
   
   return Array.from(categories).sort();

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useClientAuth } from "@/hooks/useClientAuth";
+import type { Report } from "@/lib/db/schema";
 
 interface ReportItem {
   id: string;
@@ -23,7 +24,7 @@ interface ReportItem {
   testsRun: number;
   reportSize: string;
   categories: string[];
-  summary?: any;
+  summary?: Report['summary'];
 }
 
 export default function ReportsPage() {
