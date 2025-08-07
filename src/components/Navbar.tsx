@@ -11,6 +11,7 @@ export default function Navbar() {
 
   const navItems = [
     { name: "How it Works", href: "#how-it-works" },
+    { name: "Pricing", href: "#pricing" },
     { name: "FAQ", href: "#faq" },
   ];
 

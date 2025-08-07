@@ -15,6 +15,13 @@
       "when": 1754513502318,
       "tag": "0001_dizzy_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754521713977,
+      "tag": "0002_red_patch",
+      "breakpoints": true
     }
   ]
 }

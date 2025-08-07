@@ -44,8 +44,23 @@ export const owaspCategoryEnum = pgEnum('owasp_category', [
 
 export const userPlanEnum = pgEnum('user_plan', [
   'free',
-  'pro', 
-  'enterprise'
+  'developer', 
+  'team'
+]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'incomplete',
+  'incomplete_expired',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled',
+  'unpaid'
+]);
+
+export const billingIntervalEnum = pgEnum('billing_interval', [
+  'month',
+  'year'
 ]);
 
 // Users table
@@ -206,6 +221,120 @@ export const apiKeys = pgTable('api_keys', {
   activeIdx: index('api_keys_active_idx').on(table.isActive),
 }));
 
+// Subscriptions table for Stripe billing
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  
+  // Stripe identifiers
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }).notNull().unique(),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }).unique(),
+  stripePriceId: varchar('stripe_price_id', { length: 255 }),
+  
+  // Subscription details
+  status: subscriptionStatusEnum('status').notNull().default('incomplete'),
+  plan: userPlanEnum('plan').notNull(),
+  billingInterval: billingIntervalEnum('billing_interval').notNull(),
+  
+  // Pricing
+  pricePerMonth: integer('price_per_month').notNull(), // in cents
+  currency: varchar('currency', { length: 3 }).notNull().default('usd'),
+  
+  // Billing periods
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  trialStart: timestamp('trial_start'),
+  trialEnd: timestamp('trial_end'),
+  
+  // Cancellation
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  canceledAt: timestamp('canceled_at'),
+  cancelReason: varchar('cancel_reason', { length: 500 }),
+  
+  // Metadata
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  userIdx: index('subscriptions_user_idx').on(table.userId),
+  stripeCustomerIdx: index('subscriptions_stripe_customer_idx').on(table.stripeCustomerId),
+  stripeSubscriptionIdx: index('subscriptions_stripe_subscription_idx').on(table.stripeSubscriptionId),
+  statusIdx: index('subscriptions_status_idx').on(table.status),
+  planIdx: index('subscriptions_plan_idx').on(table.plan),
+}));
+
+// Billing history table for payment tracking
+export const billingHistory = pgTable('billing_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id, { onDelete: 'set null' }),
+  
+  // Stripe identifiers
+  stripeInvoiceId: varchar('stripe_invoice_id', { length: 255 }).unique(),
+  stripeChargeId: varchar('stripe_charge_id', { length: 255 }).unique(),
+  stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 255 }).unique(),
+  
+  // Event details
+  eventType: varchar('event_type', { length: 100 }).notNull(), // invoice.paid, payment_failed, etc.
+  status: varchar('status', { length: 50 }).notNull(), // succeeded, failed, pending
+  
+  // Payment details
+  amount: integer('amount').notNull(), // in cents
+  currency: varchar('currency', { length: 3 }).notNull().default('usd'),
+  description: text('description'),
+  
+  // Period covered by payment
+  periodStart: timestamp('period_start'),
+  periodEnd: timestamp('period_end'),
+  
+  // Failure details
+  failureCode: varchar('failure_code', { length: 100 }),
+  failureMessage: varchar('failure_message', { length: 500 }),
+  
+  // Metadata
+  metadata: jsonb('metadata'), // additional Stripe metadata
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  processedAt: timestamp('processed_at'),
+}, (table) => ({
+  userIdx: index('billing_history_user_idx').on(table.userId),
+  subscriptionIdx: index('billing_history_subscription_idx').on(table.subscriptionId),
+  stripeInvoiceIdx: index('billing_history_stripe_invoice_idx').on(table.stripeInvoiceId),
+  eventTypeIdx: index('billing_history_event_type_idx').on(table.eventType),
+  statusIdx: index('billing_history_status_idx').on(table.status),
+  createdAtIdx: index('billing_history_created_at_idx').on(table.createdAt),
+}));
+
+// Plan features table for feature limits
+export const planFeatures = pgTable('plan_features', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  plan: userPlanEnum('plan').notNull().unique(),
+  
+  // Scan limits
+  scansPerDay: integer('scans_per_day').notNull(),
+  scansPerMonth: integer('scans_per_month').notNull(),
+  
+  // Feature flags
+  domainVerification: boolean('domain_verification').notNull().default(false),
+  apiAccess: boolean('api_access').notNull().default(false),
+  advancedReports: boolean('advanced_reports').notNull().default(false),
+  customBranding: boolean('custom_branding').notNull().default(false),
+  prioritySupport: boolean('priority_support').notNull().default(false),
+  
+  // API limits
+  apiCallsPerHour: integer('api_calls_per_hour').default(0),
+  maxApiKeys: integer('max_api_keys').default(0),
+  
+  // Advanced features
+  webhookSupport: boolean('webhook_support').notNull().default(false),
+  teamAccess: boolean('team_access').notNull().default(false),
+  ssoSupport: boolean('sso_support').notNull().default(false),
+  
+  // Metadata
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  planIdx: index('plan_features_plan_idx').on(table.plan),
+}));
+
 // Usage tracking table for rate limiting and analytics
 export const usageStats = pgTable('usage_stats', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -219,10 +348,14 @@ export const usageStats = pgTable('usage_stats', {
   // Plan tracking
   planAtTime: userPlanEnum('plan_at_time').notNull(),
   
+  // Billing context
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id, { onDelete: 'set null' }),
+  
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   userDateIdx: index('usage_stats_user_date_idx').on(table.userId, table.date),
   dateIdx: index('usage_stats_date_idx').on(table.date),
+  subscriptionIdx: index('usage_stats_subscription_idx').on(table.subscriptionId),
 }));
 
 // Types for TypeScript
@@ -238,5 +371,11 @@ export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type BillingHistory = typeof billingHistory.$inferSelect;
+export type NewBillingHistory = typeof billingHistory.$inferInsert;
+export type PlanFeatures = typeof planFeatures.$inferSelect;
+export type NewPlanFeatures = typeof planFeatures.$inferInsert;
 export type UsageStats = typeof usageStats.$inferSelect;
 export type NewUsageStats = typeof usageStats.$inferInsert;

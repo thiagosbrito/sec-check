@@ -5,6 +5,7 @@ import { scans, users, usageStats } from '@/lib/db/schema';
 import { addScanJob } from '@/lib/queue/queue';
 import { eq, and, gte, lt, sql } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
+import { planEnforcementService } from '@/lib/billing/enforcement';
 
 // Request schema
 const scanRequestSchema = z.object({
@@ -124,6 +125,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const planCheck = await planEnforcementService.checkScanLimit(user.id);
+      if (!planCheck.allowed) {
+        return NextResponse.json({ error: planCheck.reason }, { status: 402 });
+      }
+
       // Check for duplicate recent scans (within last 5 minutes)
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       const [recentScan] = await db
@@ -226,6 +232,8 @@ export async function POST(request: NextRequest) {
     // Update usage stats for authenticated users
     if (user && userId) {
       await updateUsageStats(userId);
+      // Track usage in the new billing system
+      await planEnforcementService.trackScanUsage(userId);
     }
 
     return NextResponse.json({

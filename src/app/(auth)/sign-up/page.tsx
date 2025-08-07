@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { Github, Mail, Lock, AlertCircle, CheckCircle, User } from "lucide-react";
+import { Github, Mail, Lock, AlertCircle, CheckCircle, User, Zap, Crown } from "lucide-react";
+import { PLAN_CONFIG } from '@/lib/stripe/config';
 
 function SignUpContent() {
   const [formData, setFormData] = useState({
@@ -20,7 +21,16 @@ function SignUpContent() {
   const [success, setSuccess] = useState(false);
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirectUrl');
+  const selectedPlan = searchParams.get('plan') as 'developer' | 'team' | null;
+  const selectedInterval = searchParams.get('interval') as 'monthly' | 'yearly' | null;
   const supabase = createClient();
+
+  // Get plan details
+  const planConfig = selectedPlan ? PLAN_CONFIG[selectedPlan] : null;
+  const planPrice = planConfig && selectedInterval ? 
+    (selectedInterval === 'monthly' ? planConfig.monthlyPrice : planConfig.yearlyPrice) / 100 : 0;
+
+  const PlanIcon = selectedPlan === 'developer' ? Zap : Crown;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -31,7 +41,20 @@ function SignUpContent() {
 
   const getCallbackUrl = () => {
     const baseUrl = `${window.location.origin}/callback`;
-    return redirectUrl ? `${baseUrl}?redirectUrl=${encodeURIComponent(redirectUrl)}` : baseUrl;
+    const params = new URLSearchParams();
+    
+    if (redirectUrl) {
+      params.set('redirectUrl', redirectUrl);
+    }
+    
+    // Add plan selection to callback for checkout redirection
+    if (selectedPlan && selectedInterval) {
+      params.set('plan', selectedPlan);
+      params.set('interval', selectedInterval);
+      params.set('checkout', 'true');
+    }
+    
+    return params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
   };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -145,8 +168,27 @@ function SignUpContent() {
     <>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
-        <p className="text-gray-400">Get started with SecCheck today</p>
+        <p className="text-gray-400">
+          {selectedPlan ? `Sign up for ${planConfig?.name} plan` : 'Get started with SecCheck today'}
+        </p>
       </div>
+
+      {/* Selected Plan Display */}
+      {selectedPlan && planConfig && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/50 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <PlanIcon className="w-5 h-5 text-purple-400" />
+            <span className="font-semibold text-white">{planConfig.name} Plan</span>
+            <span className="text-purple-400">
+              ${Math.floor(planPrice)}{planPrice % 1 !== 0 && `.${((planPrice % 1) * 100).toFixed(0).padStart(2, '0')}`}
+              /{selectedInterval}
+            </span>
+          </div>
+          <p className="text-sm text-gray-300">
+            After signing up, you&apos;ll be redirected to complete your subscription.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg flex items-center gap-2">

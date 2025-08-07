@@ -12,12 +12,50 @@ function CallbackContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
+  // Function to handle checkout redirection
+  const handleCheckoutRedirect = async (plan: string, interval: string) => {
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan,
+          interval,
+          successUrl: `${window.location.origin}/dashboard/billing?success=true`,
+          cancelUrl: `${window.location.origin}/dashboard/billing?canceled=true`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      
+      if (url) {
+        // Redirect to Stripe Checkout
+        window.location.href = url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      // Fallback to dashboard with error
+      router.push('/dashboard?error=checkout_failed');
+    }
+  };
+
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
         // Get the code from URL params
         const code = searchParams.get('code');
         const redirectUrl = searchParams.get('redirectUrl');
+        const shouldCheckout = searchParams.get('checkout');
+        const selectedPlan = searchParams.get('plan');
+        const selectedInterval = searchParams.get('interval');
         
         if (code) {
           // Exchange the code for a session
@@ -36,9 +74,12 @@ function CallbackContent() {
             // TODO: Create user in our database using tRPC
             // This will be implemented when we integrate tRPC with auth
             
-            // Redirect based on whether there's a redirect URL
+            // Redirect based on plan selection or redirect URL
             setTimeout(() => {
-              if (redirectUrl) {
+              if (shouldCheckout && selectedPlan && selectedInterval) {
+                // Create checkout session and redirect to Stripe
+                handleCheckoutRedirect(selectedPlan, selectedInterval);
+              } else if (redirectUrl) {
                 // Redirect to scan page with the URL parameter
                 router.push(`/dashboard/scan?url=${encodeURIComponent(redirectUrl)}`);
               } else {
