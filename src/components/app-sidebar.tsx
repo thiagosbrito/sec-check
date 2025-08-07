@@ -21,7 +21,8 @@ import {
   Settings, 
   History,
   User,
-  LogOut
+  LogOut,
+  CreditCard
 } from "lucide-react";
 import Link from "next/link";
 import { useClientAuth } from "@/hooks/useClientAuth";
@@ -47,6 +48,11 @@ const data = {
       title: "Reports",
       url: "/dashboard/reports",
       icon: FileText,
+    },
+    {
+      title: "Billing",
+      url: "/dashboard/billing",
+      icon: CreditCard,
     },
   ],
 };

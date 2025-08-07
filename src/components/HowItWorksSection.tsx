@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Search, Shield, FileText, CheckCircle } from "lucide-react";
+import { springs, durations } from "@/lib/animations";
 
 const steps = [
   {
@@ -107,8 +108,8 @@ export default function HowItWorksSection() {
                     {/* Icon */}
                     <motion.div
                       className={`relative inline-flex p-4 rounded-2xl w-fit mx-auto bg-gradient-to-r ${step.color} shadow-lg mb-4`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                      whileHover={{ scale: 1.05, rotate: 3 }}
+                      transition={springs.gentle}
                     >
                       <IconComponent className="w-8 h-8 text-white" />
                       <div className="absolute inset-0 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

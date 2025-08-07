@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Check, Zap, Crown, Building, Shield } from "lucide-react";
+import { springs, durations } from "@/lib/animations";
 import { PLAN_CONFIG } from '@/lib/stripe/config';
 
 // Free plan configuration (not in Stripe)
@@ -176,8 +177,8 @@ export default function PricingSection() {
                     <div className="text-center mb-8">
                       <motion.div
                         className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-r ${plan.color} shadow-2xl mb-4`}
-                        whileHover={{ scale: 1.1, rotate: 3 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        whileHover={{ scale: 1.05, rotate: 2 }}
+                        transition={springs.gentle}
                       >
                         <IconComponent className="w-8 h-8 text-white" />
                         <div className="absolute inset-0 bg-white/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -13,6 +13,7 @@ import {
   Zap,
   CheckCircle
 } from "lucide-react";
+import { springs } from "@/lib/animations";
 import { GlassCard } from "./ui/glass-card";
 
 const features = [
@@ -136,8 +137,8 @@ export default function FeaturesSection() {
                       <div className="flex items-center gap-3">
                         <motion.div
                           className={`relative p-3 rounded-xl bg-gradient-to-r ${feature.color} shadow-lg`}
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                          whileHover={{ scale: 1.05, rotate: 3 }}
+                          transition={springs.gentle}
                         >
                           <IconComponent className="w-6 h-6 text-white" />
                           <div className="absolute inset-0 bg-white/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

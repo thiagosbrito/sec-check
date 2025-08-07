@@ -1,7 +1,8 @@
-import { stripe, getStripePriceId, getPlanPrice, type PlanType, type BillingInterval } from './client';
+import { stripe, getStripePriceId, type PlanType, type BillingInterval } from './client';
+import { PLAN_CONFIG } from './config';
 import { db } from '@/lib/db/connection';
-import { subscriptions, users, type NewSubscription } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { subscriptions } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import type Stripe from 'stripe';
 
 export interface CreateCheckoutSessionParams {
@@ -31,37 +32,56 @@ export class BillingService {
     cancelUrl,
   }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
     try {
-      // Check if user already has a subscription
-      const existingSubscription = await db
-        .select()
+      // Check if user already has an active subscription
+      const existingCustomer = await db
+        .select({ stripeCustomerId: subscriptions.stripeCustomerId })
         .from(subscriptions)
         .where(eq(subscriptions.userId, userId))
         .limit(1);
 
-      if (existingSubscription.length > 0) {
-        throw new Error('User already has an active subscription');
+      if (existingCustomer.length > 0) {
+        // Check if they have an active subscription in Stripe
+        const activeSubscriptions = await db.execute(
+          sql`
+            SELECT id, status FROM stripe.subscriptions 
+            WHERE customer = ${existingCustomer[0].stripeCustomerId}
+            AND status IN ('active', 'trialing', 'past_due')
+            LIMIT 1
+          `
+        );
+        
+        if (activeSubscriptions.length > 0) {
+          throw new Error('User already has an active subscription');
+        }
       }
 
       // Get or create Stripe customer
       let stripeCustomerId: string;
       
-      // Try to find existing customer by email
-      const customers = await stripe.customers.list({
-        email: userEmail,
-        limit: 1,
-      });
-
-      if (customers.data.length > 0) {
-        stripeCustomerId = customers.data[0].id;
+      if (existingCustomer.length > 0) {
+        stripeCustomerId = existingCustomer[0].stripeCustomerId;
       } else {
-        // Create new customer
-        const customer = await stripe.customers.create({
+        // Try to find existing customer by email
+        const customers = await stripe.customers.list({
           email: userEmail,
-          metadata: {
-            userId,
-          },
+          limit: 1,
         });
-        stripeCustomerId = customer.id;
+
+        if (customers.data.length > 0) {
+          stripeCustomerId = customers.data[0].id;
+        } else {
+          // Create new customer
+          const customer = await stripe.customers.create({
+            email: userEmail,
+            metadata: {
+              userId,
+            },
+          });
+          stripeCustomerId = customer.id;
+        }
+        
+        // Store customer relation for future foreign table queries
+        await this.storeCustomerRelation(userId, stripeCustomerId);
       }
 
       // Create checkout session
@@ -103,18 +123,18 @@ export class BillingService {
     returnUrl,
   }: CreateCustomerPortalParams): Promise<Stripe.BillingPortal.Session> {
     try {
-      // Get user's subscription
-      const subscription = await db
-        .select()
+      // Get user's customer ID
+      const customerData = await db
+        .select({ stripeCustomerId: subscriptions.stripeCustomerId })
         .from(subscriptions)
         .where(eq(subscriptions.userId, userId))
         .limit(1);
 
-      if (subscription.length === 0) {
-        throw new Error('No subscription found for user');
+      if (customerData.length === 0) {
+        throw new Error('No customer found for user');
       }
 
-      const stripeCustomerId = subscription[0].stripeCustomerId;
+      const stripeCustomerId = customerData[0].stripeCustomerId;
 
       // Create portal session
       const portalSession = await stripe.billingPortal.sessions.create({
@@ -130,144 +150,108 @@ export class BillingService {
   }
 
   /**
-   * Get subscription details for a user
+   * Get subscription details for a user using Stripe foreign tables
    */
   async getUserSubscription(userId: string) {
     try {
-      const subscription = await db
-        .select()
+      // Get user's Stripe customer ID
+      const customerData = await db
+        .select({ stripeCustomerId: subscriptions.stripeCustomerId })
         .from(subscriptions)
         .where(eq(subscriptions.userId, userId))
         .limit(1);
 
-      if (subscription.length === 0) {
+      if (customerData.length === 0) {
         return null;
       }
 
-      const sub = subscription[0];
+      const customerId = customerData[0].stripeCustomerId;
 
-      // Get latest subscription data from Stripe
-      if (sub.stripeSubscriptionId) {
-        const stripeSubscription = await stripe.subscriptions.retrieve(
-          sub.stripeSubscriptionId,
-          {
-            expand: ['latest_invoice', 'customer'],
-          }
-        );
+      // Query Stripe subscription data directly via foreign table
+      const stripeSubscriptions = await db.execute(
+        sql`
+          SELECT 
+            s.id,
+            s.customer,
+            s.currency,
+            s.current_period_start,
+            s.current_period_end,
+            s.attrs
+          FROM stripe.subscriptions s
+          WHERE s.customer = ${customerId}
+          AND (s.attrs->>'status' = 'active' 
+               OR s.attrs->>'status' = 'trialing' 
+               OR s.attrs->>'status' = 'past_due')
+          ORDER BY (s.attrs->>'created')::bigint DESC
+          LIMIT 1
+        `
+      );
 
-        return {
-          ...sub,
-          stripeData: stripeSubscription,
-        };
+      if (stripeSubscriptions.length === 0) {
+        return null;
       }
 
-      return sub;
+      const stripeData = stripeSubscriptions[0] as {
+        id: string;
+        customer: string;
+        currency: string;
+        current_period_start: string;
+        current_period_end: string;
+        attrs: {
+          status: string;
+          trial_start?: number | null;
+          trial_end?: number | null;
+          canceled_at?: number | null;
+          cancel_at_period_end: boolean;
+          metadata?: Record<string, string> | null;
+          [key: string]: unknown;
+        };
+      };
+      const plan = stripeData.attrs.metadata?.plan || 'developer';
+      const interval = stripeData.attrs.metadata?.interval || 'monthly';
+      
+      // Convert to our format
+      return {
+        subscription: {
+          id: stripeData.id,
+          status: stripeData.attrs.status,
+          plan: plan,
+          billingInterval: interval === 'monthly' ? 'month' : 'year',
+          pricePerMonth: PLAN_CONFIG[plan as PlanType]?.[interval === 'monthly' ? 'monthlyPrice' : 'yearlyPrice'] || 2999,
+          currentPeriodStart: stripeData.current_period_start,
+          currentPeriodEnd: stripeData.current_period_end,
+          trialStart: stripeData.attrs.trial_start ? new Date(stripeData.attrs.trial_start * 1000).toISOString() : null,
+          trialEnd: stripeData.attrs.trial_end ? new Date(stripeData.attrs.trial_end * 1000).toISOString() : null,
+          cancelAtPeriodEnd: stripeData.attrs.cancel_at_period_end || false,
+          canceledAt: stripeData.attrs.canceled_at ? new Date(stripeData.attrs.canceled_at * 1000).toISOString() : null,
+        },
+        plan: plan,
+        features: this.getPlanFeatures(plan),
+        stripeData,
+      };
     } catch (error) {
       console.error('Error getting user subscription:', error);
       throw error;
     }
   }
-
-  /**
-   * Create or update subscription record in database
-   */
-  async upsertSubscription(data: {
-    userId: string;
-    stripeCustomerId: string;
-    stripeSubscriptionId: string;
-    stripePriceId: string;
-    status: string;
-    plan: PlanType;
-    billingInterval: BillingInterval;
-    currentPeriodStart?: Date;
-    currentPeriodEnd?: Date;
-    trialStart?: Date;
-    trialEnd?: Date;
-    canceledAt?: Date;
-    cancelAtPeriodEnd?: boolean;
-  }): Promise<void> {
-    try {
-      const subscriptionData: NewSubscription = {
-        userId: data.userId,
-        stripeCustomerId: data.stripeCustomerId,
-        stripeSubscriptionId: data.stripeSubscriptionId,
-        stripePriceId: data.stripePriceId,
-        status: data.status as 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid',
-        plan: data.plan,
-        billingInterval: data.billingInterval === 'monthly' ? ('month' as const) : ('year' as const),
-        pricePerMonth: getPlanPrice(data.plan, data.billingInterval),
-        currency: 'usd',
-        currentPeriodStart: data.currentPeriodStart,
-        currentPeriodEnd: data.currentPeriodEnd,
-        trialStart: data.trialStart,
-        trialEnd: data.trialEnd,
-        canceledAt: data.canceledAt,
-        cancelAtPeriodEnd: data.cancelAtPeriodEnd || false,
-        updatedAt: new Date(),
-      };
-
-      // Upsert subscription
-      await db
-        .insert(subscriptions)
-        .values(subscriptionData)
-        .onConflictDoUpdate({
-          target: subscriptions.userId,
-          set: {
-            stripeSubscriptionId: subscriptionData.stripeSubscriptionId,
-            stripePriceId: subscriptionData.stripePriceId,
-            status: subscriptionData.status,
-            plan: subscriptionData.plan,
-            billingInterval: subscriptionData.billingInterval,
-            pricePerMonth: subscriptionData.pricePerMonth,
-            currentPeriodStart: subscriptionData.currentPeriodStart,
-            currentPeriodEnd: subscriptionData.currentPeriodEnd,
-            trialStart: subscriptionData.trialStart,
-            trialEnd: subscriptionData.trialEnd,
-            canceledAt: subscriptionData.canceledAt,
-            cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd,
-            updatedAt: subscriptionData.updatedAt,
-          },
-        });
-
-      // Update user plan
-      await db
-        .update(users)
-        .set({ 
-          plan: data.plan,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, data.userId));
-
-    } catch (error) {
-      console.error('Error upserting subscription:', error);
-      throw error;
-    }
-  }
-
+  
   /**
    * Cancel subscription at period end
    */
   async cancelSubscription(userId: string): Promise<void> {
     try {
-      const subscription = await this.getUserSubscription(userId);
+      const subscriptionData = await this.getUserSubscription(userId);
       
-      if (!subscription || !subscription.stripeSubscriptionId) {
+      if (!subscriptionData?.subscription) {
         throw new Error('No active subscription found');
       }
 
       // Cancel at period end in Stripe
-      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      await stripe.subscriptions.update(subscriptionData.subscription.id as string, {
         cancel_at_period_end: true,
       });
 
-      // Update local database
-      await db
-        .update(subscriptions)
-        .set({
-          cancelAtPeriodEnd: true,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptions.userId, userId));
+      console.log(`✅ Subscription ${subscriptionData.subscription.id} marked for cancellation`);
 
     } catch (error) {
       console.error('Error canceling subscription:', error);
@@ -280,29 +264,74 @@ export class BillingService {
    */
   async resumeSubscription(userId: string): Promise<void> {
     try {
-      const subscription = await this.getUserSubscription(userId);
+      const subscriptionData = await this.getUserSubscription(userId);
       
-      if (!subscription || !subscription.stripeSubscriptionId) {
+      if (!subscriptionData?.subscription) {
         throw new Error('No subscription found');
       }
 
       // Resume subscription in Stripe
-      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      await stripe.subscriptions.update(subscriptionData.subscription.id as string, {
         cancel_at_period_end: false,
       });
 
-      // Update local database
-      await db
-        .update(subscriptions)
-        .set({
-          cancelAtPeriodEnd: false,
-          canceledAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptions.userId, userId));
+      console.log(`✅ Subscription ${subscriptionData.subscription.id} resumed`);
 
     } catch (error) {
       console.error('Error resuming subscription:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get plan features by plan type
+   */
+  private getPlanFeatures(plan: string) {
+    const planConfig = PLAN_CONFIG[plan as PlanType];
+    if (!planConfig) return null;
+    
+    return {
+      dailyScans: plan === 'developer' ? 15 : 50,
+      monthlyScans: plan === 'developer' ? 15 : 50,
+      scanTypes: 'All OWASP Top 10 tests',
+      features: planConfig.features,
+    };
+  }
+
+  /**
+   * Store customer relationship for foreign table queries
+   */
+  private async storeCustomerRelation(userId: string, stripeCustomerId: string): Promise<void> {
+    try {
+      console.log(`🔄 Storing customer relation for userId: ${userId}`);
+      
+      await db
+        .insert(subscriptions)
+        .values({
+          userId,
+          stripeCustomerId,
+          stripeSubscriptionId: '',
+          stripePriceId: '',
+          status: 'incomplete',
+          plan: 'free',
+          billingInterval: 'month',
+          pricePerMonth: 0,
+          currency: 'usd',
+          cancelAtPeriodEnd: false,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: subscriptions.userId,
+          set: {
+            stripeCustomerId,
+            updatedAt: new Date(),
+          },
+        });
+        
+      console.log(`✅ Customer relation stored successfully`);
+      
+    } catch (error) {
+      console.error('Error storing customer relation:', error);
       throw error;
     }
   }

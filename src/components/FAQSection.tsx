@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Minus } from "lucide-react";
 import { useState } from "react";
+import { springs, durations } from "@/lib/animations";
 
 const faqs = [
   {
@@ -120,7 +121,7 @@ export default function FAQSection() {
                       </h3>
                       <motion.div
                         animate={{ rotate: isOpen ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={durations.fast}
                         className="flex-shrink-0"
                       >
                         {isOpen ? (
@@ -137,7 +138,7 @@ export default function FAQSection() {
                         height: isOpen ? "auto" : 0,
                         opacity: isOpen ? 1 : 0,
                       }}
-                      transition={{ duration: 0.3 }}
+                      transition={springs.gentle}
                       className="overflow-hidden"
                     >
                       <div className="px-6 pb-6">

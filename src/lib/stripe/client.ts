@@ -34,6 +34,7 @@ export function getStripePriceId(plan: PlanType, interval: BillingInterval): str
 
 // Stripe event types we handle
 export const STRIPE_WEBHOOK_EVENTS = [
+  'checkout.session.completed',
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',

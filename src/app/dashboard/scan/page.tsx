@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { URLInput } from "@/components/ui/url-input";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { is } from "drizzle-orm";
 import Loader from "@/components/Loader";
+import { URLInput } from "@/components/ui/url-input";
+import { dashboardAnimations } from "@/lib/animations";
 
 interface ScanResult {
   testName: string;
@@ -47,30 +49,13 @@ interface ScanProgress {
 }
 
 export default function ScanPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ScanContent />
-    </Suspense>
-  );
-}
-
-function ScanContent() {
   const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null);
   const [results, setResults] = useState<ScanResult[]>([]);
-  const [scanCompleted, setScanCompleted] = useState(false);
+  const [_scanCompleted, setScanCompleted] = useState(false);
   const [scanResponse, setScanResponse] = useState<ScanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-
-  // Populate URL from query parameter on component mount
-  useEffect(() => {
-    const urlParam = searchParams.get('url');
-    if (urlParam) {
-      setUrl(decodeURIComponent(urlParam));
-    }
-  }, [searchParams]);
 
   const handleScan = async (normalizedUrl: string) => {
     setIsScanning(true);

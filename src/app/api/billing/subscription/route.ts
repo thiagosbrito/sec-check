@@ -33,28 +33,14 @@ export async function GET(request: NextRequest) {
     const features = await db
       .select()
       .from(planFeatures)
-      .where(eq(planFeatures.plan, subscription.plan))
+      .where(eq(planFeatures.plan, subscription.plan as 'developer' | 'team' | 'free'))
       .limit(1);
 
     return NextResponse.json({
-      subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        plan: subscription.plan,
-        billingInterval: subscription.billingInterval,
-        pricePerMonth: subscription.pricePerMonth,
-        currency: subscription.currency,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        trialStart: subscription.trialStart,
-        trialEnd: subscription.trialEnd,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-        canceledAt: subscription.canceledAt,
-        createdAt: subscription.createdAt,
-      },
+      subscription: subscription.subscription,
       plan: subscription.plan,
-      features: features[0] || null,
-      stripeData: subscription || null,
+      features: features[0] || subscription.features,
+      stripeData: subscription.stripeData || null,
     });
 
   } catch (error) {
