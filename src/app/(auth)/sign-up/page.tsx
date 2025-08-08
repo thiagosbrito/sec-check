@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { Github, Mail, Lock, AlertCircle, CheckCircle, User, Zap, Crown } from "lucide-react";
+import { Github, Mail, Lock, AlertCircle, CheckCircle, User, Zap, Crown, Eye, EyeOff } from "lucide-react";
 import { PLAN_CONFIG } from '@/lib/stripe/config';
 
 function SignUpContent() {
@@ -19,6 +19,8 @@ function SignUpContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirectUrl');
   const selectedPlan = searchParams.get('plan') as 'developer' | 'team' | null;
@@ -63,14 +65,26 @@ function SignUpContent() {
     setError("");
 
     // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    if (!formData.name.trim()) {
+      setError("Please enter your full name");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
@@ -82,13 +96,23 @@ function SignUpContent() {
         options: {
           data: {
             name: formData.name,
+            selectedPlan: selectedPlan || 'free', // Pass selected plan to trigger
+            selectedInterval: selectedInterval || 'monthly',
           },
           emailRedirectTo: getCallbackUrl(),
         },
       });
 
       if (error) {
-        setError(error.message);
+        // Map of common error messages to user-friendly versions
+        const errorMap = new Map([
+          ['User already registered', 'This email is already registered. Try signing in instead.'],
+          ['Invalid email', 'Please enter a valid email address.'],
+          ['Password should be at least 6 characters', 'Password must be at least 6 characters long.'],
+          ['Signup is disabled', 'Account creation is temporarily disabled. Please try again later.'],
+        ]);
+        
+        setError(errorMap.get(error.message) || error.message || 'Failed to create account. Please try again.');
         return;
       }
 
@@ -107,15 +131,24 @@ function SignUpContent() {
     setError("");
 
     try {
+      const callbackUrl = new URL(getCallbackUrl());
+      callbackUrl.searchParams.set('selectedPlan', selectedPlan || 'free');
+      callbackUrl.searchParams.set('selectedInterval', selectedInterval || 'monthly');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: getCallbackUrl(),
+          redirectTo: callbackUrl.toString(),
         },
       });
 
       if (error) {
-        setError(error.message);
+        const errorMap = new Map([
+          ['Invalid login credentials', 'Authentication failed. Please try again.'],
+          ['OAuth provider error', 'GitHub sign-in failed. Please try again.'],
+        ]);
+        
+        setError(errorMap.get(error.message) || error.message || 'GitHub sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err) {
@@ -247,15 +280,27 @@ function SignUpContent() {
             <Input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={formData.password}
               onChange={handleInputChange}
-              className="pl-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
+              className="pl-10 pr-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
               placeholder="••••••••"
               required
               disabled={loading}
               minLength={6}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -268,15 +313,27 @@ function SignUpContent() {
             <Input
               id="confirmPassword"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className="pl-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
+              className="pl-10 pr-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
               placeholder="••••••••"
               required
               disabled={loading}
               minLength={6}
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              disabled={loading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
 

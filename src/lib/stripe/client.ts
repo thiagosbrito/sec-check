@@ -40,8 +40,10 @@ export const STRIPE_WEBHOOK_EVENTS = [
   'customer.subscription.deleted',
   'invoice.payment_succeeded',
   'invoice.payment_failed',
+  'invoice.paid',
   'customer.created',
   'customer.updated',
+  'product.updated',
 ] as const;
 
 export type StripeWebhookEvent = typeof STRIPE_WEBHOOK_EVENTS[number];

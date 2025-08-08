@@ -4,8 +4,8 @@
 export const PLAN_CONFIG = {
   developer: {
     name: 'Developer',
-    monthlyPrice: 2999, // $29.99 in cents
-    yearlyPrice: 29999, // $299.99 in cents (2 months free)
+    monthlyPrice: 999, // $9.99 in cents
+    yearlyPrice: 9999, // $99.99 in cents (2 months free)
     features: [
       '1 Project',
       'Up to 15 scans per month',
@@ -17,8 +17,8 @@ export const PLAN_CONFIG = {
   },
   team: {
     name: 'Team',
-    monthlyPrice: 9999, // $99.99 in cents
-    yearlyPrice: 99999, // $999.99 in cents (2 months free)
+    monthlyPrice: 2999, // $29.99 in cents
+    yearlyPrice: 29999, // $299.99 in cents (2 months free)
     features: [
       'Up to 5 Projects',
       'Up to 50 scans per month',

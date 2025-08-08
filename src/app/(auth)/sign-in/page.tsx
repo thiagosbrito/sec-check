@@ -1,22 +1,42 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { Github, Mail, Lock, AlertCircle } from "lucide-react";
+import { Github, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirectUrl');
+  const authError = searchParams.get('error');
+  const errorMessage = searchParams.get('message');
   const supabase = createClient();
+
+  // Show auth errors from URL params
+  useEffect(() => {
+    if (authError && errorMessage) {
+      const decodedMessage = decodeURIComponent(errorMessage);
+      switch (authError) {
+        case 'auth_callback_failed':
+          setError(`Authentication failed: ${decodedMessage}`);
+          break;
+        case 'no_auth_code':
+          setError('Authentication code missing. Please try signing in again.');
+          break;
+        default:
+          setError(decodedMessage);
+      }
+    }
+  }, [authError, errorMessage]);
 
   const getCallbackUrl = () => {
     const baseUrl = `${window.location.origin}/callback`;
@@ -118,14 +138,26 @@ function SignInContent() {
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
+              className="pl-10 pr-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
               placeholder="••••••••"
               required
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
 

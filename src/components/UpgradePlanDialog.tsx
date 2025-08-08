@@ -77,6 +77,19 @@ export function UpgradePlanDialog({ children, currentPlan = 'free' }: UpgradePla
       setOpen(false);
     } catch (error) {
       console.error('Upgrade failed:', error);
+      
+      // Show user-friendly error message
+      let errorMessage = 'Failed to start checkout process';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // You could show a toast notification here instead
+      alert(`Upgrade failed: ${errorMessage}`);
+      
       setSelectedPlan(null);
     }
   };

@@ -6,6 +6,17 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { UpgradePlanDialog } from "@/components/UpgradePlanDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   CreditCard, 
   Calendar, 
@@ -130,10 +141,6 @@ function BillingContent() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of your current billing period.')) {
-      return;
-    }
-
     try {
       setActionLoading('cancel');
       await cancelSubscription();
@@ -316,21 +323,7 @@ function BillingContent() {
                   )}
                 </div>
 
-                {/* Upgrade Option for Developer Plan */}
-                {subscriptionData.subscription.plan === 'developer' && !subscriptionData.subscription.cancelAtPeriodEnd && (
-                  <div className="pt-4 border-t border-gray-700">
-                    <UpgradePlanDialog currentPlan={subscriptionData.subscription.plan}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-purple-500 text-purple-300 hover:text-purple-200 hover:bg-purple-900/20"
-                      >
-                        <ArrowUp className="w-4 h-4 mr-2" />
-                        Upgrade to Team Plan
-                      </Button>
-                    </UpgradePlanDialog>
-                  </div>
-                )}
+                {/* Note: Plan changes are now handled through Stripe Billing Portal */}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -373,14 +366,36 @@ function BillingContent() {
               )}
 
               {subscriptionData?.subscription && !subscriptionData.subscription.cancelAtPeriodEnd && (
-                <Button
-                  onClick={handleCancelSubscription}
-                  disabled={actionLoading === 'cancel'}
-                  variant="outline"
-                  className="w-full border-red-500 text-red-300 hover:text-red-200 hover:bg-red-900/20"
-                >
-                  {actionLoading === 'cancel' ? 'Canceling...' : 'Cancel Subscription'}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      disabled={actionLoading === 'cancel'}
+                      variant="outline"
+                      className="w-full border-red-500 text-red-300 hover:text-red-200 hover:bg-red-900/20"
+                    >
+                      {actionLoading === 'cancel' ? 'Canceling...' : 'Cancel Subscription'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-gray-900 border-gray-700">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">Cancel Subscription</AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-400">
+                        Are you sure you want to cancel your subscription? It will remain active until the end of your current billing period, and you&apos;ll lose access to all premium features afterward.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                        Keep Subscription
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancelSubscription}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        I&apos;m sure, cancel
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
 
               {subscriptionData?.subscription?.cancelAtPeriodEnd && (
