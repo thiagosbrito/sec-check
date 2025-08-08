@@ -2,9 +2,11 @@ import { Redis } from 'ioredis';
 
 // Get Redis URL with proper TLS format
 const getRedisUrl = (): string => {
-  let redisUrl = process.env.REDIS_URL;
-  
-  if (!redisUrl) {
+  let redisUrl = process.env.REDIS_URL ?? '';
+
+  console.log(process.env.NODE_ENV);
+
+  if (!redisUrl && process.env.NODE_ENV !== 'production') {
     throw new Error('REDIS_URL environment variable is required');
   }
   

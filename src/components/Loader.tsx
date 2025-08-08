@@ -4,6 +4,7 @@ import AnimatedView from './AnimatedView'
 import * as LoaderAnimation from '@/lib/animations/loader.json'
 import { motion } from 'framer-motion'
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
+import { springs, durations } from '@/lib/animations'
 
 export default function Loader() {
 
@@ -21,10 +22,10 @@ export default function Loader() {
     }
 
     // Use valid easing preset names for Framer Motion typing
-    const fadeTransition = { duration: 0.25, ease: 'easeOut' as const }
+    const fadeTransition = durations.fast
     const contentTransition = {
-        opacity: { duration: 0.25, ease: 'easeOut' as const },
-        scale: { type: 'spring' as const, stiffness: 260, damping: 20 },
+        opacity: durations.fast,
+        scale: springs.gentle,
     }
 
     return (

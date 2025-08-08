@@ -35,9 +35,14 @@ yarn-error.log*
 
 # vercel
 .vercel
+.swc
+.claude
+.mcp-json
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 /worker/node_modules
 /worker/dist
+playwright-report
+test-results

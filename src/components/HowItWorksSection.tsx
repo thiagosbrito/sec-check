@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Search, Shield, FileText, CheckCircle } from "lucide-react";
+import { springs, durations } from "@/lib/animations";
 
 const steps = [
   {
@@ -95,11 +96,8 @@ export default function HowItWorksSection() {
             const IconComponent = step.icon;
             return (
               <motion.div key={step.step} variants={itemVariants}>
-                <Card className="group relative h-full bg-gray-900/50 border-gray-800 hover:border-gray-600 transition-all duration-300 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-800/20" />
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${step.color}`} />
-                  
-                  <CardContent className="relative p-6 text-center">
+                <GlassCard variant="darker" gradient="rainbow" className="h-full">
+                  <div className="p-6 text-center h-full flex flex-col">
 
                     {/* Step Number */}
                     {/* <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-800 text-purple-400 font-bold text-lg mb-4 relative">
@@ -109,9 +107,9 @@ export default function HowItWorksSection() {
 
                     {/* Icon */}
                     <motion.div
-                      className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-r ${step.color} shadow-lg mb-4`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                      className={`relative inline-flex p-4 rounded-2xl w-fit mx-auto bg-gradient-to-r ${step.color} shadow-lg mb-4`}
+                      whileHover={{ scale: 1.05, rotate: 3 }}
+                      transition={springs.gentle}
                     >
                       <IconComponent className="w-8 h-8 text-white" />
                       <div className="absolute inset-0 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -129,14 +127,8 @@ export default function HowItWorksSection() {
                     {index < steps.length - 1 && (
                       <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-gray-600 to-transparent transform -translate-y-1/2" />
                     )}
-                  </CardContent>
-
-                  {/* Hover Effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    initial={false}
-                  />
-                </Card>
+                  </div>
+                </GlassCard>
               </motion.div>
             );
           })}

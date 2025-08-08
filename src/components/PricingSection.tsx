@@ -1,73 +1,63 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Crown, Building } from "lucide-react";
+import { Check, Zap, Crown, Building, Shield } from "lucide-react";
+import { springs, durations } from "@/lib/animations";
+import { PLAN_CONFIG } from '@/lib/stripe/config';
 
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "/month",
-    description: "Perfect for trying out SecCheck",
+// Free plan configuration (not in Stripe)
+const FREE_PLAN = {
+  id: 'free',
+  name: 'Free',
+  monthlyPrice: 0,
+  yearlyPrice: 0,
+  features: [
+    '1 scan per day',
+    '3 scans per month',
+    'Basic security reports',
+    'Public scans only',
+    'Community support',
+  ],
+  description: 'Perfect for trying out SecCheck',
+  icon: Shield,
+  color: 'from-gray-500 to-gray-600',
+  popular: false,
+  cta: 'Get Started Free',
+};
+
+// Plan metadata (visual and UX info)
+const PLAN_METADATA = {
+  developer: {
     icon: Zap,
-    color: "from-gray-500 to-gray-600",
+    color: 'from-purple-500 to-blue-500',
     popular: false,
-    features: [
-      "1 scan per day",
-      "Basic OWASP Top 10 tests",
-      "Essential security report",
-      "Public URL scanning only",
-      "Email support"
-    ],
-    limitations: [
-      "No scan history",
-      "No API access",
-      "Standard priority"
-    ]
+    description: 'For individual developers and small projects',
+    cta: 'Get Started',
   },
-  {
-    name: "Pro",
-    price: "$29",
-    period: "/month",
-    description: "For developers and small teams",
+  team: {
     icon: Crown,
-    color: "from-purple-500 to-blue-500",
-    popular: true,
-    features: [
-      "50 scans per month",
-      "Full OWASP Top 10 + CVE database",
-      "Detailed vulnerability reports",
-      "90-day scan history",
-      "Domain verification",
-      "API access",
-      "Priority support",
-      "Custom report branding"
-    ],
-    limitations: []
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For organizations with compliance needs",
-    icon: Building,
-    color: "from-orange-500 to-red-500",
+    color: 'from-orange-500 to-red-500',
     popular: false,
-    features: [
-      "Unlimited scans",
-      "Advanced security testing",
-      "Compliance reporting (SOC2, PCI DSS)",
-      "Unlimited scan history",
-      "White-label reports",
-      "SSO integration",
-      "Dedicated support",
-      "Custom integrations",
-      "SLA guarantee"
-    ],
-    limitations: []
-  }
+    description: 'For teams and growing businesses',
+    cta: 'Get Started',
+  },
+} as const;
+
+// Combine all plans with metadata
+const allPlans = [
+  FREE_PLAN,
+  ...Object.entries(PLAN_CONFIG).map(([planId, planConfig]) => ({
+    id: planId,
+    name: planConfig.name,
+    monthlyPrice: planConfig.monthlyPrice,
+    yearlyPrice: planConfig.yearlyPrice,
+    features: planConfig.features,
+    ...PLAN_METADATA[planId as keyof typeof PLAN_METADATA],
+  })),
 ];
 
 const containerVariants = {
@@ -92,6 +82,22 @@ const itemVariants = {
 };
 
 export default function PricingSection() {
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
+
+  const getPrice = (plan: typeof allPlans[0]) => {
+    const price = billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+    return price / 100; // Convert from cents to dollars
+  };
+
+  const getSavings = (plan: typeof allPlans[0]) => {
+    if (plan.id === 'free') return null;
+    const monthlyTotal = (plan.monthlyPrice * 12) / 100;
+    const yearlyPrice = plan.yearlyPrice / 100;
+    const savings = monthlyTotal - yearlyPrice;
+    const percentage = Math.round((savings / monthlyTotal) * 100);
+    return { amount: savings, percentage };
+  };
+
   return (
     <section id="pricing" className="relative px-6 py-20 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -113,9 +119,41 @@ export default function PricingSection() {
             </span>
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Choose the plan that fits your security testing needs. 
-            Start free and upgrade as your requirements grow.
+            Start with our free tier, then upgrade when you need more scans and advanced features.
           </p>
+
+          {/* Billing Toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-center mt-8 p-1 bg-gray-900 rounded-lg w-fit mx-auto"
+          >
+            <button
+              onClick={() => setBillingInterval('monthly')}
+              className={`px-6 py-2 rounded-md transition-all ${
+                billingInterval === 'monthly'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingInterval('yearly')}
+              className={`px-6 py-2 rounded-md transition-all relative ${
+                billingInterval === 'yearly'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Yearly
+              <span className="absolute -top-2 -right-2 bg-green-500 text-black text-xs px-2 py-1 rounded-full font-bold">
+                Save 17%
+              </span>
+            </button>
+          </motion.div>
         </motion.div>
 
         {/* Pricing Cards */}
@@ -126,79 +164,97 @@ export default function PricingSection() {
           viewport={{ once: true }}
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          {plans.map((plan) => {
+          {allPlans.map((plan) => {
             const IconComponent = plan.icon;
+            const price = getPrice(plan);
+            const savings = getSavings(plan);
+
             return (
-              <motion.div key={plan.name} variants={itemVariants}>
-                <Card className={`group relative h-full transition-all duration-300 overflow-hidden ${
-                  plan.popular 
-                    ? 'bg-gray-900/70 border-purple-500/50 ring-2 ring-purple-500/20 scale-105' 
-                    : 'bg-gray-900/50 border-gray-800 hover:border-gray-600'
-                }`}>
-                  {plan.popular && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center py-2 font-semibold text-sm">
-                      Most Popular
-                    </div>
-                  )}
-                  
-                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-800/20" />
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${plan.color}`} />
-                  
-                  <CardContent className={`relative p-8 ${plan.popular ? 'pt-16' : ''}`}>
+              <motion.div key={plan.id} variants={itemVariants}>
+                <GlassCard variant="dark" gradient="rainbow" className="h-full">
+                  <div className="p-8 h-full flex flex-col">
                     {/* Header */}
                     <div className="text-center mb-8">
                       <motion.div
-                        className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-r ${plan.color} shadow-lg mb-4`}
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-r ${plan.color} shadow-2xl mb-4`}
+                        whileHover={{ scale: 1.05, rotate: 2 }}
+                        transition={springs.gentle}
                       >
                         <IconComponent className="w-8 h-8 text-white" />
-                        <div className="absolute inset-0 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 bg-white/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </motion.div>
                       
                       <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
                       <p className="text-gray-400 text-sm mb-4">{plan.description}</p>
                       
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold text-white">{plan.price}</span>
-                        <span className="text-gray-400">{plan.period}</span>
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-4xl font-bold text-white">
+                            ${plan.id === 'free' ? '0' : Math.floor(price)}
+                          </span>
+                          {price % 1 !== 0 && (
+                            <span className="text-2xl font-bold text-white">
+                              .{((price % 1) * 100).toFixed(0).padStart(2, '0')}
+                            </span>
+                          )}
+                          <span className="text-gray-400">
+                            {plan.id !== 'free' && `/${billingInterval === 'monthly' ? 'month' : 'year'}`}
+                          </span>
+                        </div>
+
+                        {billingInterval === 'yearly' && savings && (
+                          <div className="text-green-400 text-sm font-semibold">
+                            Save ${savings.amount.toFixed(0)}/year ({savings.percentage}% off)
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Features */}
-                    <div className="space-y-4 mb-8">
+                    <div className="space-y-4 mb-8 flex-grow">
                       {plan.features.map((feature, index) => (
                         <motion.div
                           key={index}
                           initial={{ opacity: 0, x: -10 }}
                           whileInView={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.1 * index }}
-                          className="flex items-center gap-3"
+                          className="flex items-start gap-3"
                         >
-                          <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-                          <span className="text-gray-300 text-sm">{feature}</span>
+                          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-200 text-sm leading-relaxed">{feature}</span>
                         </motion.div>
                       ))}
                     </div>
 
                     {/* CTA Button */}
-                    <Button
-                      className={`w-full font-semibold py-3 transition-all duration-200 transform hover:scale-105 ${
-                        plan.popular
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
-                          : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500'
-                      }`}
-                    >
-                      {plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
-                    </Button>
-                  </CardContent>
+                    <div className="mt-auto">
+                      <Link
+                        href={
+                          plan.id === 'free'
+                            ? '/sign-up'
+                            : `/sign-up?plan=${plan.id}&interval=${billingInterval}`
+                        }
+                      >
+                        <Button
+                          className={`w-full font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl ${
+                            plan.id === 'free'
+                              ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white border border-gray-500/50'
+                              : 'bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:from-purple-500 hover:via-blue-500 hover:to-cyan-500 text-white shadow-lg'
+                          }`}
+                        >
+                          <span className="relative z-10">{plan.cta || 'Get Started'}</span>
+                        </Button>
+                      </Link>
 
-                  {/* Hover Effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    initial={false}
-                  />
-                </Card>
+                      {/* Additional Info */}
+                      {plan.id !== 'free' && (
+                        <p className="text-center text-xs text-gray-400 mt-4 opacity-75">
+                          No setup fee • Cancel anytime
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
               </motion.div>
             );
           })}

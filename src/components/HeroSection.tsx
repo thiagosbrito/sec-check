@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { URLInput } from "@/components/ui/url-input";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { variants, springs, durations, hoverAnimations } from "@/lib/animations";
 
 export default function HeroSection() {
   const [url, setUrl] = useState("");
@@ -28,20 +29,20 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative px-6 pt-20 pb-16 lg:px-8">
+    <section className="relative px-6 pt-20 pb-16 lg:px-8" data-testid="hero-section">
       <div className="mx-auto max-w-4xl text-center">
-        {/* Logo/Brand */}
+        {/* Logo */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={durations.page}
           className="mb-8"
         >
           <div className="inline-flex items-center gap-3 mb-4">
             <motion.div
               className="relative"
               whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
             >
               <Shield className="w-12 h-12 text-purple-400" />
               <div className="absolute inset-0 bg-purple-400/20 rounded-full blur-xl" />
@@ -56,7 +57,7 @@ export default function HeroSection() {
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ ...durations.page, delay: 0.2 }}
           className="text-5xl lg:text-7xl font-bold tracking-tight mb-6"
         >
           <span className="bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
@@ -72,7 +73,7 @@ export default function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          transition={{ ...durations.page, delay: 0.4 }}
           className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed"
         >
           Professional-grade automated security testing that scans your website for vulnerabilities 
@@ -84,7 +85,7 @@ export default function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
+          transition={{ ...durations.page, delay: 0.6 }}
           className="mb-16"
         >
           <URLInput
@@ -103,7 +104,7 @@ export default function HeroSection() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 1, ...durations.slow }}
             className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-400"
           >
             <div className="flex items-center gap-2">

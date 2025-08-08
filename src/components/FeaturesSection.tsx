@@ -13,6 +13,8 @@ import {
   Zap,
   CheckCircle
 } from "lucide-react";
+import { springs } from "@/lib/animations";
+import { GlassCard } from "./ui/glass-card";
 
 const features = [
   {
@@ -129,18 +131,14 @@ export default function FeaturesSection() {
             const IconComponent = feature.icon;
             return (
               <motion.div key={feature.id} variants={itemVariants}>
-                <Card className="group relative h-full bg-gray-900/50 border-gray-800 hover:border-gray-600 transition-all duration-300 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-800/20" />
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${feature.color}`} />
-                  
-                  <CardContent className="relative p-6">
-                    {/* Header */}
+                <GlassCard variant="darker" gradient="rainbow" className="h-full">
+                  <div className="p-6 h-full flex flex-col">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <motion.div
                           className={`relative p-3 rounded-xl bg-gradient-to-r ${feature.color} shadow-lg`}
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                          whileHover={{ scale: 1.05, rotate: 3 }}
+                          transition={springs.gentle}
                         >
                           <IconComponent className="w-6 h-6 text-white" />
                           <div className="absolute inset-0 bg-white/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -179,14 +177,9 @@ export default function FeaturesSection() {
                         </motion.div>
                       ))}
                     </div>
-                  </CardContent>
-
-                  {/* Hover Effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    initial={false}
-                  />
-                </Card>
+                  </div>
+                </GlassCard>
+                    
               </motion.div>
             );
           })}

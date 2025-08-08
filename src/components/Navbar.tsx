@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { variants, springs, durations, hoverAnimations } from "@/lib/animations";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
     { name: "How it Works", href: "#how-it-works" },
+    { name: "Pricing", href: "#pricing" },
     { name: "FAQ", href: "#faq" },
   ];
 
@@ -18,7 +20,7 @@ export default function Navbar() {
     <motion.nav
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={durations.page}
       className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/8 rounded-xl overflow-hidden shadow-2xl border backdrop-blur-md w-9/12 border-gray-800/50"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -26,8 +28,7 @@ export default function Navbar() {
           {/* Logo */}
           <motion.div
             className="flex items-center gap-3"
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            whileHover={variants.hoverScale}
           >
             <div className="relative">
               <Shield className="w-8 h-8 text-purple-400" />
@@ -45,8 +46,8 @@ export default function Navbar() {
                 key={item.name}
                 href={item.href}
                 className="text-gray-300 hover:text-white transition-colors duration-200 font-medium cursor-pointer"
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                whileHover={{ y: -1 }}
+                transition={springs.gentle}
               >
                 {item.name}
               </motion.a>
@@ -88,7 +89,7 @@ export default function Navbar() {
             height: isMenuOpen ? "auto" : 0,
             opacity: isMenuOpen ? 1 : 0,
           }}
-          transition={{ duration: 0.3 }}
+          transition={springs.gentle}
           className="overflow-hidden md:hidden"
         >
           <div className="py-4 space-y-4 border-t border-gray-800/50">

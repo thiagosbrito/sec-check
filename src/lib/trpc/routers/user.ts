@@ -13,7 +13,7 @@ export const userRouter = createTRPCRouter({
       id: z.string(),
       email: z.string(),
       name: z.string().nullable(),
-      plan: z.enum(['free', 'pro', 'enterprise']),
+      plan: z.enum(['free', 'developer', 'team']),
       scanLimit: z.number(),
       createdAt: z.date(),
     }))

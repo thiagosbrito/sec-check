@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { Github, Mail, Lock, AlertCircle, CheckCircle, User } from "lucide-react";
+import { Github, Mail, Lock, AlertCircle, CheckCircle, User, Zap, Crown, Eye, EyeOff } from "lucide-react";
+import { PLAN_CONFIG } from '@/lib/stripe/config';
 
 function SignUpContent() {
   const [formData, setFormData] = useState({
@@ -18,9 +19,20 @@ function SignUpContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirectUrl');
+  const selectedPlan = searchParams.get('plan') as 'developer' | 'team' | null;
+  const selectedInterval = searchParams.get('interval') as 'monthly' | 'yearly' | null;
   const supabase = createClient();
+
+  // Get plan details
+  const planConfig = selectedPlan ? PLAN_CONFIG[selectedPlan] : null;
+  const planPrice = planConfig && selectedInterval ? 
+    (selectedInterval === 'monthly' ? planConfig.monthlyPrice : planConfig.yearlyPrice) / 100 : 0;
+
+  const PlanIcon = selectedPlan === 'developer' ? Zap : Crown;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -31,7 +43,20 @@ function SignUpContent() {
 
   const getCallbackUrl = () => {
     const baseUrl = `${window.location.origin}/callback`;
-    return redirectUrl ? `${baseUrl}?redirectUrl=${encodeURIComponent(redirectUrl)}` : baseUrl;
+    const params = new URLSearchParams();
+    
+    if (redirectUrl) {
+      params.set('redirectUrl', redirectUrl);
+    }
+    
+    // Add plan selection to callback for checkout redirection
+    if (selectedPlan && selectedInterval) {
+      params.set('plan', selectedPlan);
+      params.set('interval', selectedInterval);
+      params.set('checkout', 'true');
+    }
+    
+    return params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
   };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -40,14 +65,26 @@ function SignUpContent() {
     setError("");
 
     // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    if (!formData.name.trim()) {
+      setError("Please enter your full name");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
@@ -59,13 +96,23 @@ function SignUpContent() {
         options: {
           data: {
             name: formData.name,
+            selectedPlan: selectedPlan || 'free', // Pass selected plan to trigger
+            selectedInterval: selectedInterval || 'monthly',
           },
           emailRedirectTo: getCallbackUrl(),
         },
       });
 
       if (error) {
-        setError(error.message);
+        // Map of common error messages to user-friendly versions
+        const errorMap = new Map([
+          ['User already registered', 'This email is already registered. Try signing in instead.'],
+          ['Invalid email', 'Please enter a valid email address.'],
+          ['Password should be at least 6 characters', 'Password must be at least 6 characters long.'],
+          ['Signup is disabled', 'Account creation is temporarily disabled. Please try again later.'],
+        ]);
+        
+        setError(errorMap.get(error.message) || error.message || 'Failed to create account. Please try again.');
         return;
       }
 
@@ -84,15 +131,24 @@ function SignUpContent() {
     setError("");
 
     try {
+      const callbackUrl = new URL(getCallbackUrl());
+      callbackUrl.searchParams.set('selectedPlan', selectedPlan || 'free');
+      callbackUrl.searchParams.set('selectedInterval', selectedInterval || 'monthly');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: getCallbackUrl(),
+          redirectTo: callbackUrl.toString(),
         },
       });
 
       if (error) {
-        setError(error.message);
+        const errorMap = new Map([
+          ['Invalid login credentials', 'Authentication failed. Please try again.'],
+          ['OAuth provider error', 'GitHub sign-in failed. Please try again.'],
+        ]);
+        
+        setError(errorMap.get(error.message) || error.message || 'GitHub sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err) {
@@ -145,8 +201,27 @@ function SignUpContent() {
     <>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
-        <p className="text-gray-400">Get started with SecCheck today</p>
+        <p className="text-gray-400">
+          {selectedPlan ? `Sign up for ${planConfig?.name} plan` : 'Get started with SecCheck today'}
+        </p>
       </div>
+
+      {/* Selected Plan Display */}
+      {selectedPlan && planConfig && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/50 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <PlanIcon className="w-5 h-5 text-purple-400" />
+            <span className="font-semibold text-white">{planConfig.name} Plan</span>
+            <span className="text-purple-400">
+              ${Math.floor(planPrice)}{planPrice % 1 !== 0 && `.${((planPrice % 1) * 100).toFixed(0).padStart(2, '0')}`}
+              /{selectedInterval}
+            </span>
+          </div>
+          <p className="text-sm text-gray-300">
+            After signing up, you&apos;ll be redirected to complete your subscription.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg flex items-center gap-2">
@@ -205,15 +280,27 @@ function SignUpContent() {
             <Input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={formData.password}
               onChange={handleInputChange}
-              className="pl-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
+              className="pl-10 pr-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
               placeholder="••••••••"
               required
               disabled={loading}
               minLength={6}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -226,15 +313,27 @@ function SignUpContent() {
             <Input
               id="confirmPassword"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className="pl-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
+              className="pl-10 pr-10 bg-black/50 border-gray-700 focus:border-purple-500 focus:ring-purple-500/20 text-white"
               placeholder="••••••••"
               required
               disabled={loading}
               minLength={6}
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              disabled={loading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
 

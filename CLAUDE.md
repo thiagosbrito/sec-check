@@ -21,21 +21,21 @@ Uses pnpm as package manager (version 10.10.0+).
 - Framework: Next.js 15.4.5 with App Router
 - Language: TypeScript with strict mode
 - Styling: Tailwind CSS v4
-- Components: Shadcn (planned)
-- Auth: NextAuth (planned)
-- Database: Supabase + Drizzle (planned)
+- Components: Shadcn/UI (integrated)
+- Auth: Supabase Auth (integrated)
+- Database: Supabase + Drizzle (implemented)
 
 **Backend (Next.js API Routes)**
 - Runtime: Node.js via Next.js API
+- Payment processing: Stripe webhooks & API
 - Browser automation: Playwright (planned)
-- Job queue: BullMQ with Redis (planned)
-- Workers: Docker containers on Fly.io (planned)
+- Job queue: BullMQ with Redis on Railway (planned)
 
-**Infrastructure (Planned)**
-- Frontend hosting: Vercel
-- Workers: Fly.io
-- Database: Supabase (PostgreSQL)
-- Queue: Upstash Redis
+**Infrastructure**
+- Frontend hosting: Vercel (deployed)
+- Payment processing: Stripe (integrated)
+- Database: Supabase PostgreSQL (configured)
+- Queue & Workers: Railway (managed)
 
 ## Project Structure
 
@@ -85,10 +85,11 @@ The MVP includes security tests mapped to OWASP Top 10:
 | Dark Theme UI | ✅ | Custom dark theme with gradients and animations |
 | Responsive Design | ✅ | Mobile-first responsive layout |
 | Framer Motion Animations | ✅ | Smooth animations throughout |
-| Shadcn Components | ✅ | Button, Input, Card components integrated |
-| Dashboard Layout | ⏳ | User dashboard for scan history |
+| Shadcn Components | ✅ | Button, Input, Card, AlertDialog components integrated |
+| Authentication UI | ✅ | Sign in/up forms with GitHub OAuth |
+| Dashboard Layout | ✅ | User dashboard with billing management |
+| Billing Management | ✅ | Stripe integration with plan upgrades/cancellation |
 | Report Viewer | ⏳ | Component to display security reports |
-| Authentication UI | ⏳ | Sign in/up forms and user management |
 
 #### **Backend API Development**
 | Endpoint | Status | OWASP Category | Notes |
@@ -115,13 +116,13 @@ The MVP includes security tests mapped to OWASP Top 10:
 |---------|--------|-------|
 | Next.js Setup | ✅ | Project initialized with TypeScript |
 | Vercel Deployment | ✅ | Frontend hosting configured |
-| Supabase Database | ✅ | PostgreSQL database configured with schema |
+| Supabase Database | ✅ | PostgreSQL database with complete schema |
 | Drizzle ORM | ✅ | Schema and migrations setup complete |
-| NextAuth Integration | ⏳ | User authentication system |
+| Supabase Auth | ✅ | GitHub OAuth integration |
+| Stripe Integration | ✅ | Payment processing, webhooks, billing portal |
+| Railway Infrastructure | ✅ | Queue and worker hosting configured |
 | Playwright Setup | ⏳ | Headless browser automation |
-| BullMQ Queue System | ⏳ | Redis-based job queue |
-| Fly.io Workers | ⏳ | Docker containers for scanning |
-| Upstash Redis | ⏳ | Queue and caching infrastructure |
+| BullMQ Queue System | ⏳ | Redis-based job queue on Railway |
 
 #### **Security Testing Modules**
 | Module | Status | Priority | Dependencies |
@@ -162,19 +163,33 @@ The MVP includes security tests mapped to OWASP Top 10:
 1. ✅ ~~Set up Supabase database~~ - **COMPLETED**
 2. ✅ ~~Create database schema for scans, reports, and users~~ - **COMPLETED**
 3. ✅ ~~Set up Drizzle ORM with migrations~~ - **COMPLETED**
-4. Create first API endpoint `/api/scan` with basic structure  
-5. Implement security header audit as first testing module
-6. Set up Playwright for automated browser testing
+4. ✅ ~~Create first API endpoint `/api/scan` with basic structure~~ - **COMPLETED**
+5. ✅ ~~Implement security header audit as first testing module~~ - **COMPLETED**
+6. ✅ ~~Set up Playwright for automated browser testing~~ - **COMPLETED**
+7. Set up Live view from Playwright running tests on Railway container (we are currently using browserless container from Railway)
 
 ### 🗄️ Database Schema
-**Tables Created**:
+**Tables Implemented**:
 - `users` - User accounts with plans and limits
-- `domains` - Domain verification for authenticated scans  
+- `subscriptions` - Stripe subscription management  
+- `billing_history` - Payment tracking and invoices
+- `domains` - Domain verification for authenticated scans
 - `scans` - Scan requests and metadata
 - `scan_results` - Individual vulnerability findings
 - `reports` - Generated security reports
 - `api_keys` - API access management
 - `usage_stats` - Rate limiting and analytics
+
+### 💳 Stripe Integration Features
+**Completed Payment System**:
+- ✅ **Subscription Plans**: Developer ($9.99/mo, $99.99/yr) & Team ($29.99/mo, $299.99/yr)
+- ✅ **Checkout Flow**: Stripe Checkout with plan selection
+- ✅ **Webhooks**: Webhook system handling key subscription events
+- ✅ **Billing Portal**: Stripe customer portal for plan management
+- ✅ **Plan Changes**: Automatic sync when plans changed via portal
+- ✅ **Cancellation**: Elegant shadcn AlertDialog for subscription cancellation
+- ✅ **Database Sync**: Real-time subscription status and billing history
+- ✅ **TypeScript**: Fully typed with proper error handling
 
 ### 🧪 Testing Strategy
 - Unit tests for individual security test modules
