@@ -1,6 +1,55 @@
 // Jest setup file for React Testing Library
 import '@testing-library/jest-dom'
 
+// Add Web API polyfills for Jest environment
+const { TextEncoder, TextDecoder } = require('util')
+
+// Polyfill Web APIs that are missing in Jest environment
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
+
+// Polyfill fetch and Response if not available
+if (!global.fetch) {
+  global.fetch = jest.fn()
+}
+
+if (!global.Response) {
+  global.Response = class MockResponse {
+    ok = true
+    status = 200
+    statusText = 'OK'
+    headers = new Map()
+    body: any = null
+    bodyUsed = false
+    
+    constructor(body?: any, init?: any) {
+      this.body = body
+      this.status = init?.status || 200
+      this.statusText = init?.statusText || 'OK'
+      this.ok = this.status >= 200 && this.status < 300
+    }
+    
+    async json() { 
+      return this.body ? JSON.parse(this.body) : null 
+    }
+    async text() { 
+      return this.body || '' 
+    }
+    async blob() { 
+      return new Blob([this.body || '']) 
+    }
+    async arrayBuffer() { 
+      return new ArrayBuffer(0) 
+    }
+    clone() { 
+      return new (this.constructor as any)(this.body, { 
+        status: this.status, 
+        statusText: this.statusText 
+      }) 
+    }
+  } as any
+}
+
 // Mock Next.js router
 jest.mock('next/router', () => ({
   useRouter: () => ({
