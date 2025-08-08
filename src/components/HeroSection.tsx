@@ -29,7 +29,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative px-6 pt-20 pb-16 lg:px-8">
+    <section className="relative px-6 pt-20 pb-16 lg:px-8" data-testid="hero-section">
       <div className="mx-auto max-w-4xl text-center">
         {/* Logo */}
         <motion.div

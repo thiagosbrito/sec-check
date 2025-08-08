@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { headers as getHeaders } from 'next/headers';
 import { stripe, getPlanPrice, type PlanType } from '@/lib/stripe/client';
 import { db } from '@/lib/db/connection';
 import { subscriptions, billingHistory, users } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
 export async function POST(req: NextRequest) {
+  // Read the webhook secret at request time to respect test env changes
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     console.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
     return NextResponse.json(
@@ -16,30 +16,63 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  // Safely read raw body; if this fails, return processing error
+  let body: string;
+  try {
+    body = await (req as Request).text();
+  } catch (e) {
+    console.error('Webhook processing error while reading body:', e);
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    );
+  }
+
+  // Read signature header - handle jest mocks that return Maps
+  let signature: string | null = null;
+  try {
+    const hdrs = await getHeaders();
+    // In tests, this often returns a Map
+    if (hdrs instanceof Map) {
+      signature = hdrs.get('stripe-signature') ?? null;
+    } 
+    // In production, this returns a HeadersList-like object with .get()
+    else if (hdrs && typeof hdrs.get === 'function') {
+      signature = hdrs.get('stripe-signature') ?? null;
+    }
+  } catch (e) {
+    signature = null;
+  }
+
+  // If still no signature, try fallback to request headers
+  if (!signature) {
+    try {
+      signature = (req.headers && typeof req.headers.get === 'function')
+        ? req.headers.get('stripe-signature')
+        : null;
+    } catch {}
+  }
+
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing stripe-signature header' },
+      { status: 400 }
+    );
+  }
+
+  // Verify webhook signature
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    );
+  }
 
   try {
-    const body = await req.text();
-    const headersList = await headers();
-    const signature = headersList.get('stripe-signature');
-
-    if (!signature) {
-      return NextResponse.json(
-        { error: 'Missing stripe-signature header' },
-        { status: 400 }
-      );
-    }
-
-    // Verify webhook signature
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err);
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
-    }
 
     // Handle the event
     console.log(`Processing webhook event: ${event.type}`);
