@@ -32,6 +32,9 @@ export default defineConfig({
 
     /* Record video on failure */
     video: 'retain-on-failure',
+
+    /* Run headless in CI, with head locally for debugging */
+    headless: process.env.NODE_ENV === 'production',
   },
 
   /* Configure projects for major browsers */
