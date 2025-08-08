@@ -6,7 +6,7 @@ import * as schema from './schema';
 const connectionString = process.env.DATABASE_URL ?? '';
 
 // Check for required environment variable at runtime
-if (!connectionString && process.env.NODE_ENV !== 'test') {
+if (!connectionString && process.env.NODE_ENV !== 'production') {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
@@ -34,7 +34,7 @@ if (connectionString) {
 // Export the database instance with runtime check
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   get(target, prop) {
-    if (!connectionString) {
+    if (!connectionString && process.env.NODE_ENV !== 'production') {
       throw new Error('DATABASE_URL environment variable is required');
     }
     if (!client || !dbInstance) {

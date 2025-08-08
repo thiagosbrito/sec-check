@@ -18,11 +18,11 @@ dotenv.config();
 
 // Database connection
 const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
+if (!connectionString && process.env.NODE_ENV !== 'production') {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-const sql = postgres(connectionString);
+const sql = postgres(connectionString!);
 const db = drizzle(sql);
 
 // Redis connection
