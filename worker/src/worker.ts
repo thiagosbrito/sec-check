@@ -27,16 +27,13 @@ const db = drizzle(sql);
 
 // Redis connection
 const redisUrl = process.env.REDIS_URL;
-if (!redisUrl) {
+if (!redisUrl && process.env.NODE_ENV !== 'test') {
   throw new Error('REDIS_URL environment variable is required');
 }
 
-// Handle both Upstash and Railway Redis URLs
+// Handle Railway Redis URLs
 let processedRedisUrl = redisUrl;
-if (redisUrl.startsWith('redis://') && redisUrl.includes('upstash.io')) {
-  processedRedisUrl = redisUrl.replace('redis://', 'rediss://');
-} else if (redisUrl.includes('railway.internal')) {
-  // Fix for Railway Redis - force IPv4 for ioredis
+if (redisUrl?.includes('railway.internal')) {
   processedRedisUrl = redisUrl + '?family=0';
 }
 
@@ -51,13 +48,13 @@ const redisOptions: any = {
 };
 
 // Add TLS for Upstash URLs (Railway Redis typically doesn't need TLS)
-if (processedRedisUrl.includes('upstash.io')) {
+if (processedRedisUrl?.includes('upstash.io')) {
   redisOptions.tls = {
     rejectUnauthorized: false, // Important for Upstash
   };
 }
 
-const redis = new Redis(processedRedisUrl, redisOptions);
+const redis = new Redis(processedRedisUrl ?? '', redisOptions);
 
 // Test Redis connection
 redis.on('connect', () => {

@@ -11,7 +11,7 @@ dotenv.config();
 const requiredEnvVars = ['DATABASE_URL', 'REDIS_URL'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
-if (missingEnvVars.length > 0) {
+if (missingEnvVars.length > 0 && process.env.NODE_ENV !== 'test') {
   console.error('Missing required environment variables:', missingEnvVars.join(', '));
   process.exit(1);
 }
