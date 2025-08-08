@@ -9,12 +9,14 @@ import { testUsers } from '../__fixtures__/users'
 // Mock external dependencies
 jest.mock('@/lib/stripe/client', () => ({
   stripe: {
-    webhooks: {
-      constructEvent: jest.fn(),
-    },
-    subscriptions: {
-      retrieve: jest.fn(),
-    },
+    instance: {
+      webhooks: {
+        constructEvent: jest.fn(),
+      },
+      subscriptions: {
+        retrieve: jest.fn(),
+      },
+    }
   },
   getPlanPrice: jest.fn(),
 }))
@@ -214,7 +216,7 @@ describe('/api/webhooks/stripe', () => {
     })
 
     it('returns 400 when webhook signature verification fails', async () => {
-      mockStripe.webhooks.constructEvent.mockImplementation(() => {
+      mockStripe.instance.webhooks.constructEvent.mockImplementation(() => {
         throw new Error('Invalid signature')
       })
 
@@ -228,7 +230,7 @@ describe('/api/webhooks/stripe', () => {
 
     it('successfully verifies valid webhook signature', async () => {
       const event = mockStripeEvent('customer.created', { id: 'cus_test' })
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -236,7 +238,7 @@ describe('/api/webhooks/stripe', () => {
 
       expect(response.status).toBe(200)
       expect(data.received).toBe(true)
-      expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledWith(
+      expect(mockStripe.instance.webhooks.constructEvent).toHaveBeenCalledWith(
         'webhook_body',
         't=12345,v1=valid_signature',
         'whsec_test_secret'
@@ -247,12 +249,12 @@ describe('/api/webhooks/stripe', () => {
   describe('Subscription Events', () => {
     beforeEach(() => {
       const event = mockStripeEvent('customer.subscription.created', mockStripeSubscription)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
     })
 
     it('handles subscription.created event', async () => {
       const event = mockStripeEvent('customer.subscription.created', mockStripeSubscription)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -264,7 +266,7 @@ describe('/api/webhooks/stripe', () => {
 
     it('handles subscription.updated event with plan change', async () => {
       const event = mockStripeEvent('customer.subscription.updated', mockStripeSubscription)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -275,7 +277,7 @@ describe('/api/webhooks/stripe', () => {
 
     it('handles subscription.deleted event', async () => {
       const event = mockStripeEvent('customer.subscription.deleted', mockStripeSubscription)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -294,21 +296,21 @@ describe('/api/webhooks/stripe', () => {
         mode: 'subscription',
       }
       const event = mockStripeEvent('checkout.session.completed', checkoutSession)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
-      mockStripe.subscriptions.retrieve.mockResolvedValue(mockStripeSubscription)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.subscriptions.retrieve.mockResolvedValue(mockStripeSubscription)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
 
       expect(response.status).toBe(200)
-      expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith('sub_test123')
+      expect(mockStripe.instance.subscriptions.retrieve).toHaveBeenCalledWith('sub_test123')
     })
   })
 
   describe('Payment Events', () => {
     it('handles invoice.payment_succeeded event', async () => {
       const event = mockStripeEvent('invoice.payment_succeeded', mockStripeInvoice)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       // Mock database calls specifically for payment handling
       // First call: find subscription (should return a subscription)
@@ -350,7 +352,7 @@ describe('/api/webhooks/stripe', () => {
 
     it('handles invoice.payment_failed event', async () => {
       const event = mockStripeEvent('invoice.payment_failed', mockStripeInvoice)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -370,7 +372,7 @@ describe('/api/webhooks/stripe', () => {
       }))
 
       const event = mockStripeEvent('invoice.payment_succeeded', mockStripeInvoice)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -383,7 +385,7 @@ describe('/api/webhooks/stripe', () => {
   describe('Customer Events', () => {
     it('handles customer.created event', async () => {
       const event = mockStripeEvent('customer.created', { id: 'cus_test' })
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -393,7 +395,7 @@ describe('/api/webhooks/stripe', () => {
 
     it('handles customer.updated event', async () => {
       const event = mockStripeEvent('customer.updated', { id: 'cus_test' })
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -405,7 +407,7 @@ describe('/api/webhooks/stripe', () => {
   describe('Product Events', () => {
     it('handles product.updated event', async () => {
       const event = mockStripeEvent('product.updated', { id: 'prod_test' })
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -417,7 +419,7 @@ describe('/api/webhooks/stripe', () => {
   describe('Unhandled Events', () => {
     it('handles unrecognized event types gracefully', async () => {
       const event = mockStripeEvent('some.unknown.event', { id: 'test' })
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
       const request = createWebhookRequest('webhook_body')
       const response = await POST(request)
@@ -431,7 +433,7 @@ describe('/api/webhooks/stripe', () => {
   describe('Error Handling', () => {
     it('handles database errors gracefully', async () => {
       const event = mockStripeEvent('customer.subscription.created', mockStripeSubscription)
-      mockStripe.webhooks.constructEvent.mockReturnValue(event)
+      mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
       
       // Mock database error
       mockDb.select.mockImplementation(() => {
@@ -484,7 +486,7 @@ describe('/api/webhooks/stripe', () => {
         }
 
         const event = mockStripeEvent('customer.subscription.created', subscription)
-        mockStripe.webhooks.constructEvent.mockReturnValue(event)
+        mockStripe.instance.webhooks.constructEvent.mockReturnValue(event)
 
         const request = createWebhookRequest('webhook_body')
         const response = await POST(request)

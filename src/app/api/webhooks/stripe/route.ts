@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   // Verify webhook signature
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = stripe.instance.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     return NextResponse.json(
@@ -160,7 +160,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   
   try {
     // Retrieve the full subscription object from Stripe
-    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+    const subscription = await stripe.instance.subscriptions.retrieve(session.subscription as string);
     
     // Process the subscription the same way as subscription.created
     await handleSubscriptionCreated(subscription);

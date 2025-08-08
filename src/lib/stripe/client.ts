@@ -1,15 +1,30 @@
 import Stripe from 'stripe';
 import { BillingInterval, PlanType } from './config';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
+// Lazy initialization of Stripe client
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
+    }
+    
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-07-30.basil',
+      typescript: true,
+    });
+  }
+  
+  return stripeInstance;
 }
 
-// Initialize Stripe client
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
-  typescript: true,
-});
+// Export a getter function instead of the direct instance
+export const stripe = {
+  get instance() {
+    return getStripe();
+  }
+};
 
 // Stripe price IDs for different plans (to be configured in Stripe Dashboard)
 export const STRIPE_PLANS = {

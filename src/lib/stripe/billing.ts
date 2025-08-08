@@ -41,7 +41,7 @@ export class BillingService {
 
       if (existingCustomer.length > 0) {
         // Check if they have an active subscription in Stripe directly
-        const stripeSubscriptions = await stripe.subscriptions.list({
+        const stripeSubscriptions = await stripe.instance.subscriptions.list({
           customer: existingCustomer[0].stripeCustomerId,
           status: 'active',
           limit: 1,
@@ -59,7 +59,7 @@ export class BillingService {
         stripeCustomerId = existingCustomer[0].stripeCustomerId;
       } else {
         // Try to find existing customer by email
-        const customers = await stripe.customers.list({
+        const customers = await stripe.instance.customers.list({
           email: userEmail,
           limit: 1,
         });
@@ -68,7 +68,7 @@ export class BillingService {
           stripeCustomerId = customers.data[0].id;
         } else {
           // Create new customer
-          const customer = await stripe.customers.create({
+          const customer = await stripe.instance.customers.create({
             email: userEmail,
             metadata: {
               userId,
@@ -82,7 +82,7 @@ export class BillingService {
       }
 
       // Create checkout session
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripe.instance.checkout.sessions.create({
         customer: stripeCustomerId,
         payment_method_types: ['card'],
         line_items: [
@@ -137,7 +137,7 @@ export class BillingService {
       const stripeCustomerId = customerData[0].stripeCustomerId;
 
       // Create portal session
-      const portalSession = await stripe.billingPortal.sessions.create({
+      const portalSession = await stripe.instance.billingPortal.sessions.create({
         customer: stripeCustomerId,
         return_url: returnUrl,
       });
@@ -168,7 +168,7 @@ export class BillingService {
       const customerId = customerData[0].stripeCustomerId;
 
       // Query Stripe subscription data directly via Stripe API - only active subscriptions
-      const stripeSubscriptions = await stripe.subscriptions.list({
+      const stripeSubscriptions = await stripe.instance.subscriptions.list({
         customer: customerId,
         status: 'active',
         limit: 1,
@@ -220,7 +220,7 @@ export class BillingService {
       }
 
       // Cancel at period end in Stripe
-      await stripe.subscriptions.update(subscriptionData.subscription.id as string, {
+      await stripe.instance.subscriptions.update(subscriptionData.subscription.id as string, {
         cancel_at_period_end: true,
       });
 
@@ -244,7 +244,7 @@ export class BillingService {
       }
 
       // Resume subscription in Stripe
-      await stripe.subscriptions.update(subscriptionData.subscription.id as string, {
+      await stripe.instance.subscriptions.update(subscriptionData.subscription.id as string, {
         cancel_at_period_end: false,
       });
 

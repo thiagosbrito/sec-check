@@ -1,5 +1,5 @@
 // Mock Stripe for testing
-export const mockStripe = {
+const mockStripeInstance = {
   checkout: {
     sessions: {
       create: jest.fn(),
@@ -43,9 +43,13 @@ export const mockStripe = {
   },
 }
 
+export const mockStripe = {
+  instance: mockStripeInstance
+}
+
 // Mock Stripe module
 jest.mock('stripe', () => {
-  return jest.fn(() => mockStripe)
+  return jest.fn(() => mockStripeInstance)
 })
 
 // Test data for Stripe responses
