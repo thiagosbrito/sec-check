@@ -6,6 +6,9 @@ import { eq, desc, and, isNull } from 'drizzle-orm';
 import { getScanJobStatus } from '@/lib/queue/queue';
 import { createClient } from '@/lib/supabase/server';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Route params schema
 const paramsSchema = z.object({
   id: z.string().uuid('Invalid scan ID format'),

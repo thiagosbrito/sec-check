@@ -6,11 +6,12 @@ let stripeInstance: Stripe | null = null;
 
 function getStripe(): Stripe {
   if (!stripeInstance) {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const secretKey = process.env.STRIPE_SECRET_KEY ?? '';
+    if (!secretKey) {
       throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
     }
     
-    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripeInstance = new Stripe(secretKey, {
       apiVersion: '2025-07-30.basil',
       typescript: true,
     });
