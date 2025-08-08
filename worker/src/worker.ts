@@ -27,7 +27,7 @@ const db = drizzle(sql);
 
 // Redis connection
 const redisUrl = process.env.REDIS_URL;
-if (!redisUrl && process.env.NODE_ENV !== 'test') {
+if (!redisUrl && process.env.NODE_ENV !== 'production') {
   throw new Error('REDIS_URL environment variable is required');
 }
 

@@ -6,7 +6,7 @@ const getRedisUrl = (): string => {
 
   console.log(process.env.NODE_ENV);
 
-  if (!redisUrl && process.env.NODE_ENV !== 'test') {
+  if (!redisUrl && process.env.NODE_ENV !== 'production') {
     throw new Error('REDIS_URL environment variable is required');
   }
   
